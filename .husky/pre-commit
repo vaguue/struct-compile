@@ -1,4 +1,4 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-npm test && npm run create-diagram
+npm run generate-test-data && npm test && npm run create-diagram

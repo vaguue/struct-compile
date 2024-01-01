@@ -91,8 +91,8 @@ test('visitor', (t) => {
       attributes: { packed: true },
       members: [
         { value: [ 'char', 'name', '[16]' ], meta: {} },
-        { value: [ 'int', '*p' ], meta: {} },
-        { value: [ 'uint32_t', 'da[]' ], meta: {} }
+        { value: [ 'int*', 'p' ], meta: {} },
+        { value: [ 'uint32_t*', 'da', '[]' ], meta: {} }
       ],
       meta: { BE: true }
     }

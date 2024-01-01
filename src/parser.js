@@ -13,7 +13,7 @@ const SquareBracketClose = createToken({ name: 'SquareBracketClose', pattern: /\
 const BracesOpen = createToken({ name: 'BracesOpen', pattern: /\{/ });
 const BracesClose = createToken({ name: 'BracesClose', pattern: /\}/ });
 //const Identifier = createToken({ name: 'Identifier', pattern: /(const\s*)?&?[a-zA-Z][\w:_]*&?\*?(\[\])?/ });
-const Identifier = createToken({ name: 'Identifier', pattern: /(const\s*)?[&*]?[_a-zA-Z][\w:_]*&?\*?(\[\d*?\])?/ });
+const Identifier = createToken({ name: 'Identifier', pattern: /(const\s*)?([&*]\s*?)?[_a-zA-Z][\w:_]*&?\*?(\[\d*?\])?/ });
 const Comma = createToken({ name: 'Comma', pattern: /,/ });
 const Semicolon = createToken({ name: 'Semicolon', pattern: /;/ });
 const EqualOperator = createToken({ name: 'EqualOperator', pattern: /=/ });

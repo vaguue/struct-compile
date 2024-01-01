@@ -10,5 +10,5 @@ struct __attribute__((__packed__)) Example2 {
   /*some useful comment that should be skipped*/
   char name /*in-between comment*/ [16];
   int *p;
-  uint32_t da[];
+  uint32_t * da[];
 };
