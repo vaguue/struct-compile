@@ -1,0 +1,25 @@
+{
+  "name": "struct",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "create-diagram": "node src/createDiagram.js",
+    "prepare": "husky install"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "imports": {
+    "#src/*": "./src/*.js"
+  },
+  "dependencies": {
+    "chevrotain": "^11.0.3"
+  },
+  "devDependencies": {
+    "husky": "^8.0.3",
+    "lodash": "^4.17.21"
+  }
+}

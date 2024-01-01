@@ -1,0 +1,618 @@
+
+<!-- This is a generated file -->
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+  body {
+    background-color: hsl(30, 20%, 95%)
+  }
+</style>
+
+
+<link rel='stylesheet' href='https://unpkg.com/chevrotain@11.0.3/diagrams/diagrams.css'>
+
+<script src='https://unpkg.com/chevrotain@11.0.3/diagrams/vendor/railroad-diagrams.js'></script>
+<script src='https://unpkg.com/chevrotain@11.0.3/diagrams/src/diagrams_builder.js'></script>
+<script src='https://unpkg.com/chevrotain@11.0.3/diagrams/src/diagrams_behavior.js'></script>
+<script src='https://unpkg.com/chevrotain@11.0.3/diagrams/src/main.js'></script>
+
+<div id="diagrams" align="center"></div>    
+
+<script>
+    window.serializedGrammar = [
+  {
+    "type": "Rule",
+    "name": "bracketExpression",
+    "orgText": "",
+    "definition": [
+      {
+        "type": "Terminal",
+        "name": "RoundBracketOpen",
+        "label": "RoundBracketOpen",
+        "idx": 0,
+        "pattern": "\\("
+      },
+      {
+        "type": "Repetition",
+        "idx": 0,
+        "definition": [
+          {
+            "type": "Alternation",
+            "idx": 0,
+            "definition": [
+              {
+                "type": "Alternative",
+                "definition": [
+                  {
+                    "type": "Terminal",
+                    "name": "Identifier",
+                    "label": "Identifier",
+                    "idx": 0,
+                    "pattern": "(const\\s*)?[&*]?[_a-zA-Z][\\w:_]*&?\\*?(\\[\\d*?\\])?"
+                  }
+                ]
+              },
+              {
+                "type": "Alternative",
+                "definition": [
+                  {
+                    "type": "Terminal",
+                    "name": "Semicolon",
+                    "label": "Semicolon",
+                    "idx": 0,
+                    "pattern": ";"
+                  }
+                ]
+              },
+              {
+                "type": "Alternative",
+                "definition": [
+                  {
+                    "type": "Terminal",
+                    "name": "CString",
+                    "label": "CString",
+                    "idx": 0,
+                    "pattern": "\"([^\"]*)\""
+                  }
+                ]
+              },
+              {
+                "type": "Alternative",
+                "definition": [
+                  {
+                    "type": "Terminal",
+                    "name": "Comma",
+                    "label": "Comma",
+                    "idx": 0,
+                    "pattern": ","
+                  }
+                ]
+              },
+              {
+                "type": "Alternative",
+                "definition": [
+                  {
+                    "type": "Terminal",
+                    "name": "EqualOperator",
+                    "label": "EqualOperator",
+                    "idx": 0,
+                    "pattern": "="
+                  }
+                ]
+              },
+              {
+                "type": "Alternative",
+                "definition": [
+                  {
+                    "type": "Terminal",
+                    "name": "Num",
+                    "label": "Num",
+                    "idx": 0,
+                    "pattern": "[0-9]+"
+                  }
+                ]
+              },
+              {
+                "type": "Alternative",
+                "definition": [
+                  {
+                    "type": "NonTerminal",
+                    "name": "bracketExpression",
+                    "idx": 0
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Terminal",
+        "name": "RoundBracketClose",
+        "label": "RoundBracketClose",
+        "idx": 0,
+        "pattern": "\\)"
+      }
+    ]
+  },
+  {
+    "type": "Rule",
+    "name": "squareBracketExpression",
+    "orgText": "",
+    "definition": [
+      {
+        "type": "Terminal",
+        "name": "SquareBracketOpen",
+        "label": "SquareBracketOpen",
+        "idx": 0,
+        "pattern": "\\["
+      },
+      {
+        "type": "Repetition",
+        "idx": 0,
+        "definition": [
+          {
+            "type": "Alternation",
+            "idx": 0,
+            "definition": [
+              {
+                "type": "Alternative",
+                "definition": [
+                  {
+                    "type": "Terminal",
+                    "name": "Identifier",
+                    "label": "Identifier",
+                    "idx": 0,
+                    "pattern": "(const\\s*)?[&*]?[_a-zA-Z][\\w:_]*&?\\*?(\\[\\d*?\\])?"
+                  }
+                ]
+              },
+              {
+                "type": "Alternative",
+                "definition": [
+                  {
+                    "type": "Terminal",
+                    "name": "Semicolon",
+                    "label": "Semicolon",
+                    "idx": 0,
+                    "pattern": ";"
+                  }
+                ]
+              },
+              {
+                "type": "Alternative",
+                "definition": [
+                  {
+                    "type": "Terminal",
+                    "name": "CString",
+                    "label": "CString",
+                    "idx": 0,
+                    "pattern": "\"([^\"]*)\""
+                  }
+                ]
+              },
+              {
+                "type": "Alternative",
+                "definition": [
+                  {
+                    "type": "Terminal",
+                    "name": "Comma",
+                    "label": "Comma",
+                    "idx": 0,
+                    "pattern": ","
+                  }
+                ]
+              },
+              {
+                "type": "Alternative",
+                "definition": [
+                  {
+                    "type": "Terminal",
+                    "name": "EqualOperator",
+                    "label": "EqualOperator",
+                    "idx": 0,
+                    "pattern": "="
+                  }
+                ]
+              },
+              {
+                "type": "Alternative",
+                "definition": [
+                  {
+                    "type": "Terminal",
+                    "name": "Num",
+                    "label": "Num",
+                    "idx": 0,
+                    "pattern": "[0-9]+"
+                  }
+                ]
+              },
+              {
+                "type": "Alternative",
+                "definition": [
+                  {
+                    "type": "NonTerminal",
+                    "name": "squareBracketExpression",
+                    "idx": 0
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Terminal",
+        "name": "SquareBracketClose",
+        "label": "SquareBracketClose",
+        "idx": 0,
+        "pattern": "\\]"
+      }
+    ]
+  },
+  {
+    "type": "Rule",
+    "name": "bracesExpression",
+    "orgText": "",
+    "definition": [
+      {
+        "type": "Terminal",
+        "name": "BracesOpen",
+        "label": "BracesOpen",
+        "idx": 0,
+        "pattern": "\\{"
+      },
+      {
+        "type": "Repetition",
+        "idx": 0,
+        "definition": [
+          {
+            "type": "Alternation",
+            "idx": 0,
+            "definition": [
+              {
+                "type": "Alternative",
+                "definition": [
+                  {
+                    "type": "Terminal",
+                    "name": "Identifier",
+                    "label": "Identifier",
+                    "idx": 0,
+                    "pattern": "(const\\s*)?[&*]?[_a-zA-Z][\\w:_]*&?\\*?(\\[\\d*?\\])?"
+                  }
+                ]
+              },
+              {
+                "type": "Alternative",
+                "definition": [
+                  {
+                    "type": "Terminal",
+                    "name": "Semicolon",
+                    "label": "Semicolon",
+                    "idx": 0,
+                    "pattern": ";"
+                  }
+                ]
+              },
+              {
+                "type": "Alternative",
+                "definition": [
+                  {
+                    "type": "Terminal",
+                    "name": "CString",
+                    "label": "CString",
+                    "idx": 0,
+                    "pattern": "\"([^\"]*)\""
+                  }
+                ]
+              },
+              {
+                "type": "Alternative",
+                "definition": [
+                  {
+                    "type": "Terminal",
+                    "name": "Comma",
+                    "label": "Comma",
+                    "idx": 0,
+                    "pattern": ","
+                  }
+                ]
+              },
+              {
+                "type": "Alternative",
+                "definition": [
+                  {
+                    "type": "Terminal",
+                    "name": "EqualOperator",
+                    "label": "EqualOperator",
+                    "idx": 0,
+                    "pattern": "="
+                  }
+                ]
+              },
+              {
+                "type": "Alternative",
+                "definition": [
+                  {
+                    "type": "Terminal",
+                    "name": "Num",
+                    "label": "Num",
+                    "idx": 0,
+                    "pattern": "[0-9]+"
+                  }
+                ]
+              },
+              {
+                "type": "Alternative",
+                "definition": [
+                  {
+                    "type": "NonTerminal",
+                    "name": "bracesExpression",
+                    "idx": 0
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Terminal",
+        "name": "BracesClose",
+        "label": "BracesClose",
+        "idx": 0,
+        "pattern": "\\}"
+      }
+    ]
+  },
+  {
+    "type": "Rule",
+    "name": "attributes",
+    "orgText": "",
+    "definition": [
+      {
+        "type": "Terminal",
+        "name": "Attributes",
+        "label": "Attributes",
+        "idx": 0,
+        "pattern": "__attribute__"
+      },
+      {
+        "type": "NonTerminal",
+        "name": "bracketExpression",
+        "idx": 0
+      }
+    ]
+  },
+  {
+    "type": "Rule",
+    "name": "member",
+    "orgText": "",
+    "definition": [
+      {
+        "type": "Option",
+        "idx": 1,
+        "definition": [
+          {
+            "type": "Terminal",
+            "name": "OneLineComment",
+            "label": "OneLineComment",
+            "idx": 1,
+            "pattern": "\\/\\/.*?\\n"
+          }
+        ]
+      },
+      {
+        "type": "Repetition",
+        "idx": 0,
+        "definition": [
+          {
+            "type": "Alternation",
+            "idx": 0,
+            "definition": [
+              {
+                "type": "Alternative",
+                "definition": [
+                  {
+                    "type": "Terminal",
+                    "name": "Identifier",
+                    "label": "Identifier",
+                    "idx": 0,
+                    "pattern": "(const\\s*)?[&*]?[_a-zA-Z][\\w:_]*&?\\*?(\\[\\d*?\\])?"
+                  }
+                ]
+              },
+              {
+                "type": "Alternative",
+                "definition": [
+                  {
+                    "type": "Terminal",
+                    "name": "CString",
+                    "label": "CString",
+                    "idx": 0,
+                    "pattern": "\"([^\"]*)\""
+                  }
+                ]
+              },
+              {
+                "type": "Alternative",
+                "definition": [
+                  {
+                    "type": "Terminal",
+                    "name": "Comma",
+                    "label": "Comma",
+                    "idx": 0,
+                    "pattern": ","
+                  }
+                ]
+              },
+              {
+                "type": "Alternative",
+                "definition": [
+                  {
+                    "type": "Terminal",
+                    "name": "EqualOperator",
+                    "label": "EqualOperator",
+                    "idx": 0,
+                    "pattern": "="
+                  }
+                ]
+              },
+              {
+                "type": "Alternative",
+                "definition": [
+                  {
+                    "type": "Terminal",
+                    "name": "Num",
+                    "label": "Num",
+                    "idx": 0,
+                    "pattern": "[0-9]+"
+                  }
+                ]
+              },
+              {
+                "type": "Alternative",
+                "definition": [
+                  {
+                    "type": "NonTerminal",
+                    "name": "bracketExpression",
+                    "idx": 0
+                  }
+                ]
+              },
+              {
+                "type": "Alternative",
+                "definition": [
+                  {
+                    "type": "NonTerminal",
+                    "name": "squareBracketExpression",
+                    "idx": 0
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Terminal",
+        "name": "Semicolon",
+        "label": "Semicolon",
+        "idx": 0,
+        "pattern": ";"
+      }
+    ]
+  },
+  {
+    "type": "Rule",
+    "name": "struct",
+    "orgText": "",
+    "definition": [
+      {
+        "type": "Option",
+        "idx": 1,
+        "definition": [
+          {
+            "type": "Terminal",
+            "name": "OneLineComment",
+            "label": "OneLineComment",
+            "idx": 0,
+            "pattern": "\\/\\/.*?\\n"
+          }
+        ]
+      },
+      {
+        "type": "Terminal",
+        "name": "Struct",
+        "label": "Struct",
+        "idx": 0,
+        "pattern": "struct"
+      },
+      {
+        "type": "Option",
+        "idx": 2,
+        "definition": [
+          {
+            "type": "NonTerminal",
+            "name": "attributes",
+            "idx": 1
+          }
+        ]
+      },
+      {
+        "type": "Terminal",
+        "name": "Identifier",
+        "label": "Identifier",
+        "idx": 0,
+        "pattern": "(const\\s*)?[&*]?[_a-zA-Z][\\w:_]*&?\\*?(\\[\\d*?\\])?"
+      },
+      {
+        "type": "Terminal",
+        "name": "BracesOpen",
+        "label": "BracesOpen",
+        "idx": 0,
+        "pattern": "\\{"
+      },
+      {
+        "type": "Repetition",
+        "idx": 0,
+        "definition": [
+          {
+            "type": "NonTerminal",
+            "name": "member",
+            "idx": 0
+          }
+        ]
+      },
+      {
+        "type": "Terminal",
+        "name": "BracesClose",
+        "label": "BracesClose",
+        "idx": 0,
+        "pattern": "\\}"
+      },
+      {
+        "type": "Option",
+        "idx": 3,
+        "definition": [
+          {
+            "type": "NonTerminal",
+            "name": "attributes",
+            "idx": 2
+          }
+        ]
+      },
+      {
+        "type": "Terminal",
+        "name": "Semicolon",
+        "label": "Semicolon",
+        "idx": 0,
+        "pattern": ";"
+      }
+    ]
+  },
+  {
+    "type": "Rule",
+    "name": "structs",
+    "orgText": "",
+    "definition": [
+      {
+        "type": "Repetition",
+        "idx": 0,
+        "definition": [
+          {
+            "type": "NonTerminal",
+            "name": "struct",
+            "idx": 0
+          }
+        ]
+      }
+    ]
+  }
+];
+</script>
+
+<script>
+    var diagramsDiv = document.getElementById("diagrams");
+    main.drawDiagramsFromSerializedGrammar(serializedGrammar, diagramsDiv);
+</script>
