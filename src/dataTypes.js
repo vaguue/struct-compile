@@ -1,3 +1,5 @@
+import { Trie } from './trie.js';
+
 export const cDataTypes = {
   'char': { signed: true, size: 8 },
   'signed char': { signed: true, size: 8 },
@@ -63,5 +65,18 @@ export const cDataTypes = {
     size: (arch) => arch.bits == 64 ? 64 : 32,
   },
   'intmax_t': { signed: true, size: 64 },
-  'uintmax_t': { signed: false, size: 64 }
+  'uintmax_t': { signed: false, size: 64 },
+  'void': { signed: false, size: 0 },
 };
+
+export const typeKeywords = Object.keys(cDataTypes);
+
+export const trie = new Trie();
+
+for (const key of typeKeywords) {
+  trie.add(key);
+}
+
+export function matchType(str, startOffset) {
+  return trie.search(str, startOffset);
+}

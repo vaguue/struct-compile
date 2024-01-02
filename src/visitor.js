@@ -1,4 +1,5 @@
 import { parserInstance } from './parser.js';
+import { trim } from './whitespace.js';
 
 const isCapital = str => str[0].toUpperCase() == str[0];
 
@@ -46,46 +47,31 @@ export class StructVisitor extends BaseCstVisitor {
     return meta;
   }
 
-  _normalizeMemberValue(values) {
-    const n = values.length;
-    for (let i = 0; i < n; ++i) {
-      if (values[i].startsWith('*')) {
-        values[i] = values[i].slice(1);
-        if (i == 0) {
-          throw new Error(`Error normalizing result: ${values[i]} is invalid`);
-        }
-        values[i - 1] = values[i - 1] + '*';
-      }
-    }
-
-    for (let i = n - 1; i >= 0; --i) {
-      if (values[i].endsWith(']') && !values[i].startsWith('[')) {
-        const str = values[i].split('');
-        const squareBracket = str.splice(str.indexOf('[')).join('');
-        values[i] = str.join('');
-        values.splice(i + 1, 0, squareBracket);
-      }
-    }
-
-    for (let i = 0; i < n; ++i) {
-      values[i] = values[i].trim();
-    }
-
-    return values;
-  }
-
   member(ctx) {
     const comment = ctx.OneLineComment?.[0]?.image ?? null;
-    const values = ctx.Identifier.map(e => ({ value: e.image, offset: e.startOffset }));
-    if (ctx.squareBracketExpression) {
-      values.push(...Array.from({ length: ctx.squareBracketExpression.length }, (_, i) => 
-        this.visit(ctx.squareBracketExpression[i], { forMember: true })));
+    const vars = Array.from({ length: ctx?.memberName?.length ?? 0 }, (_, i) => this.visit(ctx.memberName[i]));
+    let type = trim(ctx.TypeKeyword[0].image);
+    if (ctx.Pointer) {
+      type += ' ';
+      type += ctx.Pointer.map(e => e.image).join('');
     }
     const meta = this._buildMeta(comment);
 
     return {
-      value: this._normalizeMemberValue(values.sort((a, b) => a.offset - b.offset).map(e => e.value)),
+      type,
+      vars,
       meta,
+    };
+  }
+
+  memberName(ctx) {
+    const name = ctx.Identifier[0].image;
+    const d = Array.from({ length: ctx.squareBracketExpression?.length ?? 0 }, 
+      (_, i) => this.visit(ctx.squareBracketExpression[i], { forMember: true })?.value);
+    
+    return {
+      name,
+      d,
     };
   }
 
@@ -109,7 +95,7 @@ export class StructVisitor extends BaseCstVisitor {
     return result;
   }
 
-  bracketExpression(ctx, params) {
+  bracketExpression(ctx, params = {}) {
     if (params.isAttr) {
       const toLift = !params.isChild;
       params.isChild = true;
@@ -134,18 +120,18 @@ export class StructVisitor extends BaseCstVisitor {
     }
   }
 
-  squareBracketExpression(ctx, params) {
+  squareBracketExpression(ctx, params = {}) {
     if (params.forMember) {
       const offset = ctx.SquareBracketOpen[0].startOffset;
       if (ctx.Num) {
         return {
           offset,
-          value: `[${ctx.Num[0].image}]`,
+          value: parseInt(ctx.Num[0].image),
         };
       }
       return {
         offset,
-        value: `[]`,
+        value: 0,
       }
     }
     else {

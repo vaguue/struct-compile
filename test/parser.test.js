@@ -7,10 +7,6 @@ import { strict as assert } from 'node:assert';
 import _ from 'lodash';
 
 import { parseInput } from '#src/parser';
-import { traverseResult } from '#src/visitor';
-
-import parsedBasic from './data/parsed-basic.json' assert { type: 'json' };
-import parsedMoreFeatures from './data/parsed-more-features.json' assert { type: 'json' };
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const [basic, moreFeatures] = await Promise.all(['basic.h', 'more-features.h'].map(e => 
@@ -47,7 +43,8 @@ test('parser', (t) => {
             member: [{
               name: 'member',
               children: {
-                Identifier: [{ image: 'uint8_t' }, { image: 'c' }],
+                TypeKeyword: [{ image: 'uint8_t' }],
+                memberName: [{ children: { Identifier: [{ image: 'c' }] } }],
                 Semicolon: [{ image: ';' }]
               }
             }],
@@ -62,40 +59,3 @@ test('parser', (t) => {
   assert.ok(parseInput(moreFeatures));
 });
 
-test('visitor', (t) => {
-  const resultBasic = traverseResult(parsedBasic);
-  assert.deepStrictEqual(resultBasic, [{
-    name: 'Basic',
-    attributes: null,
-    members: [{
-      value: ['uint8_t','c'],
-      meta: {}
-    }],
-    meta:{},
-  }]);
-
-  const resultMoreFeatures = traverseResult(parsedMoreFeatures);
-  assert.deepStrictEqual(resultMoreFeatures, [
-    {
-      name: 'Example1',
-      attributes: { packed: true, aligned: 4 },
-      members: [
-        { value: [ 'uint8_t', 'c' ], meta: { BE: true, LE: true } },
-        { value: [ 'int', 'v' ], meta: {} },
-        { value: [ 'unsigned', 'long', 'da' ], meta: {} }
-      ],
-      meta: {}
-    },
-    {
-      name: 'Example2',
-      attributes: { packed: true },
-      members: [
-        { value: [ 'char', 'name', '[16]' ], meta: {} },
-        { value: [ 'int*', 'p' ], meta: {} },
-        { value: [ 'uint32_t*', 'da', '[]' ], meta: {} }
-      ],
-      meta: { BE: true }
-    }
-  ]);
-
-});

@@ -1,7 +1,10 @@
 import { createToken, CstParser, Lexer } from 'chevrotain';
 
+import { matchType } from './dataTypes.js';
+
 const WhiteSpace = createToken({ name: 'Whitespace', pattern: /[\s\n]+/, group: Lexer.SKIPPED, });
 const MultiLineComment = createToken({ name: 'MultiLineComment', pattern: /\/\*.*?\*\//, group: Lexer.SKIPPED, });
+const Const = createToken({ name: 'Const', pattern: /const/, group: Lexer.SKIPPED });
 const OneLineComment = createToken({ name: 'OneLineComment', pattern: /\/\/.*?\n/ });
 const Struct = createToken({ name: 'Struct', pattern: /struct/ });
 const Attributes = createToken({ name: 'Attributes', pattern: /__attribute__/ });
@@ -12,17 +15,16 @@ const SquareBracketOpen = createToken({ name: 'SquareBracketOpen', pattern: /\[/
 const SquareBracketClose = createToken({ name: 'SquareBracketClose', pattern: /\]/ });
 const BracesOpen = createToken({ name: 'BracesOpen', pattern: /\{/ });
 const BracesClose = createToken({ name: 'BracesClose', pattern: /\}/ });
-//const Identifier = createToken({ name: 'Identifier', pattern: /(const\s*)?&?[a-zA-Z][\w:_]*&?\*?(\[\])?/ });
-const Identifier = createToken({ name: 'Identifier', pattern: /(const\s*)?([&*]\s*?)?[_a-zA-Z][\w:_]*&?\*?(\[\d*?\])?/ });
+const TypeKeyword = createToken({ name: 'TypeKeyword', pattern: { exec: matchType }, line_breaks: true });
+const Pointer = createToken({ name: 'Pointer', pattern: /\*/ });
+const Identifier = createToken({ name: 'Identifier', pattern: /[_a-zA-Z][\w_]*/ });
 const Comma = createToken({ name: 'Comma', pattern: /,/ });
 const Semicolon = createToken({ name: 'Semicolon', pattern: /;/ });
-const EqualOperator = createToken({ name: 'EqualOperator', pattern: /=/ });
-const ArrowOperator = createToken({ name: 'ArrowOperator', pattern: /->/ });
 const Num = createToken({ name: 'Num', pattern: /[0-9]+/ });
 const AnyToken = createToken({ name: 'AnyToken', pattern: /./ });
 
 
-const allTokens = [WhiteSpace, MultiLineComment, OneLineComment, Struct, Attributes, CString, RoundBracketOpen, RoundBracketClose, SquareBracketOpen, SquareBracketClose, BracesOpen, BracesClose, Identifier, Comma, Semicolon, EqualOperator, ArrowOperator, Num, AnyToken];
+const allTokens = [WhiteSpace, MultiLineComment, Const, Pointer, Semicolon, OneLineComment, RoundBracketOpen, RoundBracketClose, SquareBracketOpen, SquareBracketClose, BracesOpen, BracesClose, TypeKeyword, Struct, Attributes, CString, Identifier, Comma, Num, AnyToken];
 const StructLexer = new Lexer(allTokens);
 
 export class StructParser extends CstParser {
@@ -31,11 +33,11 @@ export class StructParser extends CstParser {
 
     const $ = this;
     
-    this.initBracket(RoundBracketOpen, RoundBracketClose, 'bracketExpression');
-    this.initBracket(SquareBracketOpen, SquareBracketClose, 'squareBracketExpression');
-    this.initBracket(BracesOpen, BracesClose, 'bracesExpression');
+    this.initBracketLame(RoundBracketOpen, RoundBracketClose, 'bracketExpression');
+    this.initSquareBracket();
 
     this.initAttributesDecl();
+    this.initMemberName();
     this.initMemberDecl();
     this.initStructDecl();
     this.initStructDecls();
@@ -53,7 +55,7 @@ export class StructParser extends CstParser {
     })
   }
 
-  initBracket(op, cl, name, additionalSubrules = []) {
+  initBracketLame(op, cl, name, additionalSubrules = []) {
     const $ = this;
     $.RULE(name, () => {
       $.CONSUME(op);
@@ -63,7 +65,6 @@ export class StructParser extends CstParser {
           { ALT: () => $.CONSUME(Semicolon) },
           { ALT: () => $.CONSUME(CString) },
           { ALT: () => $.CONSUME(Comma) },
-          { ALT: () => $.CONSUME(EqualOperator) },
           { ALT: () => $.CONSUME(Num) },
           { ALT: () => $.SUBRULE($[name]) },
           ...additionalSubrules.map(e => ({ ALT: () => $.SUBRULE($[e]) }))
@@ -73,22 +74,41 @@ export class StructParser extends CstParser {
     });
   }
 
+  initSquareBracket() {
+    const $ = this;
+    $.RULE('squareBracketExpression', () => {
+      $.CONSUME(SquareBracketOpen);
+      $.MANY(() => {
+        $.CONSUME(Num);
+      });
+      $.CONSUME(SquareBracketClose);
+    });
+  }
+
+  initMemberName() {
+    const $ = this;
+    $.RULE('memberName', () => {
+      $.CONSUME(Identifier);
+      $.MANY(() => {
+        $.SUBRULE($.squareBracketExpression);
+      });
+    });
+  }
+
   initMemberDecl() {
     const $ = this;
     $.RULE('member', () => {
       $.OPTION1(() => {
         $.CONSUME1(OneLineComment);
       });
-      $.MANY(() => {
-        $.OR([
-          { ALT: () => $.CONSUME(Identifier) },
-          { ALT: () => $.CONSUME(CString) },
-          { ALT: () => $.CONSUME(Comma) },
-          { ALT: () => $.CONSUME(EqualOperator) },
-          { ALT: () => $.CONSUME(Num) },
-          { ALT: () => $.SUBRULE($.bracketExpression) },
-          { ALT: () => $.SUBRULE($.squareBracketExpression) },
-        ]);
+      $.CONSUME(TypeKeyword);
+      $.MANY1(() => {
+        $.CONSUME(Pointer);
+      });
+      $.SUBRULE1($.memberName);
+      $.MANY2(() => {
+        $.CONSUME(Comma);
+        $.SUBRULE2($.memberName);
       });
       $.CONSUME(Semicolon);
     });

@@ -43,5 +43,8 @@ int main() {
   printf("k: %lu %lu\n", (void*)&obj.k - (void*)&obj, sizeof(obj.k));
   INSPECT_SIZE(struct Inspect5);
 
+  INSPECT_SIZE(struct pcap_file_header);
+  INSPECT_SIZE(struct packet_header);
+
   return 0;
 }
