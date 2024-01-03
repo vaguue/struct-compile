@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "test": "node --test test/*.test.js",
+    "test-cov": "node --test --experimental-test-coverage test/*.test.js",
     "create-diagram": "node src/createDiagram.js",
     "generate-test-data": "node src/generateData.js",
     "prepare": "husky install"

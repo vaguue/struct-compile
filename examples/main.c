@@ -28,10 +28,10 @@ int main() {
   printf("c5: %lu %lu\n", (void*)&inspect6Obj.c5 - (void*)&inspect6Obj, sizeof(inspect6Obj.c5));
   printf("c6: %lu %lu\n", (void*)&inspect6Obj.c6 - (void*)&inspect6Obj, sizeof(inspect6Obj.c6));
   printf("c7: %lu %lu\n", (void*)&inspect6Obj.c7 - (void*)&inspect6Obj, sizeof(inspect6Obj.c7));
-  //printf("c8: %lu %lu\n", (void*)&inspect6Obj.c8 - (void*)&inspect6Obj, sizeof(inspect6Obj.c8));
-  //printf("i1: %lu %lu\n", (void*)&inspect6Obj.i1 - (void*)&inspect6Obj, sizeof(inspect6Obj.i1));
-  //printf("c9: %lu %lu\n", (void*)&inspect6Obj.c9 - (void*)&inspect6Obj, sizeof(inspect6Obj.c9));
-  //printf("c10: %lu %lu\n", (void*)&inspect6Obj.c10 - (void*)&inspect6Obj, sizeof(inspect6Obj.c10));
+  printf("c8: %lu %lu\n", (void*)&inspect6Obj.c8 - (void*)&inspect6Obj, sizeof(inspect6Obj.c8));
+  printf("i1: %lu %lu\n", (void*)&inspect6Obj.i1 - (void*)&inspect6Obj, sizeof(inspect6Obj.i1));
+  printf("c9: %lu %lu\n", (void*)&inspect6Obj.c9 - (void*)&inspect6Obj, sizeof(inspect6Obj.c9));
+  printf("c10: %lu %lu\n", (void*)&inspect6Obj.c10 - (void*)&inspect6Obj, sizeof(inspect6Obj.c10));
 
   puts("\n============\n");
 

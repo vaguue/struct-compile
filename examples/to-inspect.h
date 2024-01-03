@@ -53,11 +53,12 @@ struct Inspect6 {
   uint8_t c5;
   uint8_t c6;
   uint8_t c7;
-  uint8_t c8;
-  uint32_t i1;
+  uint8_t c8 __attribute__((aligned(16)));
+  uint16_t i1;
   uint8_t c9;
   uint8_t c10;
-};
+  uint8_t c11;
+} __attribute__((packed));
 
 struct BitFields {
   uint8_t 

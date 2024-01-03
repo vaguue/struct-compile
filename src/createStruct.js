@@ -1,4 +1,5 @@
 import { cDataTypes } from './dataTypes.js';
+import { maybeNumber } from './number.js';
 
 function endiannessFromMeta(defaultEndianness, meta) {
   let isBE = false;
@@ -31,21 +32,105 @@ function accessorFromParams({ endianness, signed, size, customKey, action }) {
   return `${action}${size == 64 ? '' : (signed ? '' : 'U')}${key}${customKey ? '' : size}${size > 8 ? endianness : ''}`;
 };
 
-function createField(StructProto, offset, { signed, size, baseSize, name, meta, customKey = null }, defaultEndianness) {
-  const endianness = endiannessFromMeta(defaultEndianness, meta);
-  const getter = accessorFromParams({ endianness, signed, size, customKey, action: 'read' });
-  const setter = accessorFromParams({ endianness, signed, size, customKey, action: 'write' });
+function proxyFromParams({ getter, setter, buffer, d: _d, size }) {
+  const k = _d[0];
+  const d = _d.slice(1);
+  const chunkSize = size / k / 8;
+  return new Proxy(buffer, {
+    get(target, _prop, receiver) {
+      const prop = maybeNumber(_prop);
+      if (typeof prop == 'number') {
+        if (prop < 0 || prop >= k) {
+          throw new Error(`Out of bounds value, expected index to be 0 <= index < ${k}`);
+        }
+        if (d.length == 0) {
+          return target[getter](prop * chunkSize);
+        }
+        else {
+          return proxyFromParams({ getter, setter, buffer: buffer.subarray(prop * chunkSize, (prop + 1) * chunkSize), d, size: chunkSize });
+        }
+      }
+      else if (typeof target[prop] == 'function') {
+        return target[prop].bind(target);
+      }
 
-  Object.defineProperty(StructProto, name, {
-    get() {
-      console.log(getter);
-      return this._buf[getter](offset);
+      //Reflect throws strange errors
+      //return Reflect.get(...arguments);
+
+      return target[prop];
     },
-    set(val) {
-      console.log(setter);
-      this._buf[setter](val, offset);
+    set(target, _prop, val) {
+      const prop = maybeNumber(_prop);
+      if (typeof prop == 'number') {
+        if (prop < 0 || prop >= k) {
+          throw new Error(`Out of bounds value, expected index to be 0 <= index < ${k}`);
+        }
+        if (d.length == 0) {
+          target[setter](val, prop * chunkSize);
+        }
+        else {
+          if (val instanceof this.BufferImpl) {
+            val.copy(target.subarray(prop * chunkSize, (propd + 1) * chunkSize), 0, 0, Math.min(val.length, chunkSize));
+          }
+          else {
+            target.subarray(prop * chunkSize, (propd + 1) * chunkSize).write(val.toString());
+          }
+        }
+        return true;
+      }
+
+      //Reflect throws strange errors
+      //return Reflect.set(...arguments);
+
+      target[prop] = val;
+
+      return true;
     },
   });
+}
+
+function createField(StructProto, offset, { signed, size: baseSize, name, meta, customKey = null, d }, defaultEndianness) {
+  if (baseSize == 0) return 0;
+
+  const endianness = endiannessFromMeta(defaultEndianness, meta);
+
+  const getter = accessorFromParams({ endianness, signed, size: baseSize, customKey, action: 'read' });
+  const setter = accessorFromParams({ endianness, signed, size: baseSize, customKey, action: 'write' });
+
+  let size = baseSize;
+  d.forEach(k => {
+    size *= k;
+  });
+
+  if (d.length == 0) {
+    Object.defineProperty(StructProto, name, {
+      get() {
+        console.log(getter);
+        return this._buf[getter](offset);
+      },
+      set(val) {
+        console.log(setter);
+        this._buf[setter](val, offset);
+      },
+    });
+  }
+  else {
+    Object.defineProperty(StructProto, name, {
+      get() {
+        return proxyFromParams({ getter, setter, buffer: this._buf.subarray(offset, offset + size), d, size });
+      },
+      set(val) {
+        if (val instanceof this.BufferImpl) {
+          val.copy(this._buf.subarray(offset, size), offset, 0, Math.min(val.length, size));
+        }
+        else {
+          this._buf.subarray(offset, size).write(val.toString());
+        }
+      }
+    });
+  }
+
+  return size;
 }
 
 function getPropertyData(arch, { type, meta, vars }) {
@@ -63,12 +148,11 @@ function getPropertyData(arch, { type, meta, vars }) {
 
   return vars.map(v => {
     const { name, d } = v;
-    const res = { name, meta, signed, size, baseSize: size, customKey };
+    const res = { name, meta, signed, size, customKey, d };
     d.forEach(k => {
       if (k == 0) {
-        res.baseSize = 0;
+        res.size = 0;
       }
-      res.size *= k;
     });
 
     return res;
@@ -106,11 +190,17 @@ export function create({ name, attributes, members, meta, }, BufferImpl, arch) {
   const { pointerSize } = arch;
 
   let { packed = false, aligned } = attributes ?? {};
+  let skipAlign = false;
   if (aligned === true) {
     aligned = pointerSize;
   }
   else if (aligned === undefined) {
-    aligned = -1;
+    if (packed) {
+      skipAlign = true;
+    }
+    else {
+      aligned = -1;
+    }
   }
   else {
     aligned = parseInt(aligned);
@@ -121,6 +211,7 @@ export function create({ name, attributes, members, meta, }, BufferImpl, arch) {
 
   Object.defineProperty(Struct, 'name', { value: name });
   Object.defineProperty(Struct, 'config', { value: { name, attributes, members, meta, fields: [] } });
+  Object.defineProperty(Struct.prototype, 'BufferImpl', { value: BufferImpl });
   Object.defineProperty(Struct.prototype, 'buffer', { 
     get() {
       return this._buf;
@@ -150,27 +241,23 @@ export function create({ name, attributes, members, meta, }, BufferImpl, arch) {
   };
 
   let offset = 0;
-  let maxSize = 0;
   const endianness = endiannessFromMeta(arch.endianness, meta);
 
   members.forEach((member) => {
     const propData = getPropertyData(arch, member);
     for (const prop of propData) {
       if (!packed) {
-        offset = alignOffset(offset, prop.baseSize / 8);
+        offset = alignOffset(offset, prop.size / 8);
       }
-      maxSize = Math.max(maxSize, prop.baseSize / 8);
-      createField(Struct.prototype, offset, prop, endianness);
-      offset += prop.size / 8;
+      if (!skipAlign) {
+        aligned = Math.max(aligned, prop.size / 8);
+      }
+      offset += createField(Struct.prototype, offset, prop, endianness) / 8;
       Struct.config.fields.push(prop.name);
     }
   });
 
-  if (aligned == -1) {
-    aligned = maxSize;
-  }
-
-  const size = alignOffset(offset, aligned);
+  const size = skipAlign ? offset : alignOffset(offset, aligned);
   Object.defineProperty(Struct.prototype, 'size', { value: size });
   Struct.size = Struct.config.size = size;
 

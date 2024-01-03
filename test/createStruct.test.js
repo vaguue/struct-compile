@@ -10,6 +10,7 @@ import traversedMoreFeatures from './data/traversed-more-features.json' assert {
 test('createMany basic', (t) => {
   const { Basic } = createMany(traversedBasic, Buffer, { pointerSize: 8, bits: 64, endianness: os.endianness() });
   const basic = new Basic();
+  assert.equal(basic.size, 1);
   basic.c = 0x42;
   assert.equal(basic.c, 0x42);
   assert.deepEqual(basic.toObject(), { c: 0x42 });
@@ -33,6 +34,21 @@ test('createMany with more features', (t) => {
 
   const e2 = new Example2();
   assert.equal(e2.size, 32);
+
   e2.dbl = 1.1;
   e2.p = 0xAAAAAAAABBBBBBBBn;
+  assert.equal(e2.dbl, 1.1);
+  assert.equal(e2.p, 0xAAAAAAAABBBBBBBBn);
+
+  e2.name = 'Sava';
+
+  assert.equal(e2.name.toString().slice(0, 4), 'Sava');
+
+  e2.name[1] = 'e'.charCodeAt(0);
+  e2.name[4] = ' '.charCodeAt(0);
+  e2.name[5] = 'D'.charCodeAt(0);
+  e2.name[6] = '.'.charCodeAt(0);
+
+  assert.equal(e2.name.toString().slice(0, 7), 'Seva D.');
+  assert.equal(e2.name[1], 'e'.charCodeAt(0));
 });
