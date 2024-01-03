@@ -25,11 +25,14 @@ export const cDataTypes = {
   'long long': { signed: true, size: 64 },
   'unsigned long long': { signed: false, size: 64 },
   'bool': { signed: false, size: 1 },
-  'float': { signed: true, size: 32 },
-  'double': { signed: true, size: 64 },
+  'float': { signed: true, size: 32, customKey: 'Float' },
+  'double': { signed: true, size: 64, customKey: 'Double' },
   'long double': { 
     signed: true, 
-    size: (arch) => arch.bits == 64 ? 128 : 96,
+    //size: (arch) => arch.bits == 64 ? 128 : 96,
+    size: (arch) => {
+      throw new Error('long double not supported');
+    },
   },
   //stdint.h
   'int8_t': { signed: true, size: 8 },

@@ -1,7 +1,5 @@
 import { parserInstance } from './parser.js';
-import { trim } from './whitespace.js';
-
-const isCapital = str => str[0].toUpperCase() == str[0];
+import { trim, isCapital } from './strings.js';
 
 //const BaseCstVisitor = parserInstance.getBaseCstVisitorConstructor();
 const BaseCstVisitor =

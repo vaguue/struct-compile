@@ -11,3 +11,5 @@ export const skipWhitespace = (str, i) => {
 export function trim(str) {
   return str.replaceAll('\n', ' ').replace(/(\s)\s+/g, '$1').trim();
 }
+
+export const isCapital = str => str[0].toUpperCase() == str[0];

@@ -1,4 +1,4 @@
-import { isWhitespace, skipWhitespace } from './whitespace.js';
+import { isWhitespace, skipWhitespace } from './strings.js';
 
 class TrieNode {
   constructor(value) {

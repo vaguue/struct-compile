@@ -6,7 +6,6 @@ import { traverseResult } from '#src/visitor';
 import parsedBasic from './data/parsed-basic.json' assert { type: 'json' };
 import parsedMoreFeatures from './data/parsed-more-features.json' assert { type: 'json' };
 
-
 test('visitor', (t) => {
   const resultBasic = traverseResult(parsedBasic);
   assert.deepStrictEqual(resultBasic, [{
@@ -17,7 +16,7 @@ test('visitor', (t) => {
       vars: [{ name: 'c', d: [] }],
       meta: {}
     }],
-    meta:{},
+    meta: {},
   }]);
 
   const resultMoreFeatures = traverseResult(parsedMoreFeatures);
@@ -28,12 +27,12 @@ test('visitor', (t) => {
       members: [
         { 
           type: 'uint8_t',
-          meta: { BE: true, LE: true },
+          meta: {},
           vars: [{ name: 'c', d: [] }]
         },
         { 
           type: 'int',
-          meta: {},
+          meta: { BE: true },
           vars: [{ name: 'v', d: [] }]
         },
         { 
@@ -54,6 +53,11 @@ test('visitor', (t) => {
           vars: [{ name: 'name', d: [16] }]
         },
         {
+          type: 'double',
+          meta: {},
+          vars: [{ name: 'dbl', d: [] }]
+        },
+        {
           type: 'int *',
           meta: {},
           vars: [{ name: 'p', d: [] }]
@@ -64,7 +68,7 @@ test('visitor', (t) => {
           vars: [{ name: 'da', d: [0] }]
         },
       ],
-      meta: { BE: true }
+      meta: { NE: true }
     }
   ]);
 
