@@ -32,6 +32,7 @@ test('visitor', (t) => {
         },
         { 
           type: 'int',
+          comment: '@BE this value will be big-endian',
           meta: { BE: true },
           vars: [{ name: 'v', d: [] }]
         },
@@ -68,7 +69,8 @@ test('visitor', (t) => {
           vars: [{ name: 'da', d: [0] }]
         },
       ],
-      meta: { NE: true }
+      meta: { NE: true },
+      comment: '@NE',
     },
     {
       attributes: null,

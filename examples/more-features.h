@@ -1,6 +1,6 @@
 struct Example1 {
   uint8_t c;
-  //@BE
+  //@BE this value will be big-endian
   int v;
   unsigned long da;
 } __attribute__((__packed__, aligned(4)));

@@ -131,7 +131,7 @@ function createField(StructProto, offset, { signed, length: baseSize, name, meta
   return length;
 }
 
-function getPropertyData(arch, { type, meta, vars }) {
+function getPropertyData(arch, { type, meta, vars, comment }) {
   let length, signed, customKey;
   if (type.includes('*')) {
     length = arch.pointerSize * 8;
@@ -146,7 +146,7 @@ function getPropertyData(arch, { type, meta, vars }) {
 
   return vars.map(v => {
     const { name, d } = v;
-    const res = { name, meta, signed, length, customKey, d };
+    const res = { name, meta, signed, length, customKey, d, comment };
     d.forEach(k => {
       if (k == 0) {
         res.length = 0;
@@ -163,7 +163,7 @@ function alignOffset(offset, length) {
   return offset + extra;
 }
 
-export function create({ name, attributes, members, meta, }, arch, BufferImpl) {
+export function create({ name, attributes, members, meta, comment }, arch, BufferImpl) {
   function Struct(arg) {
     if (arg === undefined) {
       this._buf = BufferImpl.alloc(this.length);
@@ -241,9 +241,20 @@ export function create({ name, attributes, members, meta, }, arch, BufferImpl) {
   let offset = 0;
   const endianness = endiannessFromMeta(arch.endianness, meta);
 
+  Struct.comments = {};
+
+  if (comment) {
+    Struct.comments.main = comment;
+  }
+
   members.forEach((member) => {
     const propData = getPropertyData(arch, member);
     for (const prop of propData) {
+      const { name, comment } = prop;
+      if (comment) {
+        Struct.comments[name] = comment;
+      }
+
       if (!packed) {
         offset = alignOffset(offset, prop.length / 8);
       }

@@ -2,8 +2,8 @@
   "name": "struct-compile",
   "version": "1.0.0",
   "description": "Compile C structs to JavaScript with one function",
-  "main": "./src/index.js",
   "type": "module",
+  "main": "./build/index.cjs",
   "scripts": {
     "test": "node --test test/*.test.js",
     "test-cov": "node --test --experimental-test-coverage test/*.test.js",
@@ -28,7 +28,7 @@
   "exports": {
     "node": {
       "import": "./src/index.js",
-      "require": "./build/index.js"
+      "require": "./build/index.cjs"
     }
   },
   "dependencies": {

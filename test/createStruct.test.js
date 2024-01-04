@@ -19,6 +19,8 @@ test('createMany basic', (t) => {
 
 test('createMany with more features', (t) => {
   const { Example1, Example2 } = createMany(traversedMoreFeatures, { pointerSize: 8, bits: 64, endianness: os.endianness() }, Buffer);
+  assert.equal(Example1.comments.v, '@BE this value will be big-endian');
+  assert.equal(Example2.comments.main, '@NE');
   const e1 = new Example1();
   assert.equal(e1.length, 16);
   e1.c = 'A';

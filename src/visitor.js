@@ -29,12 +29,20 @@ export class StructVisitor extends BaseCstVisitor {
     const comment = ctx.OneLineComment?.[0]?.image ?? null;
     const meta = this._buildMeta(comment);
 
-    return { 
+    return this._buildComment({
       name,
       attributes,
       members,
       meta,
-    };
+    }, comment);
+  }
+
+  _buildComment(res, comment) {
+    if (comment) {
+      res.comment = comment.slice(comment.indexOf('//') + 2).trim();
+    }
+
+    return res;
   }
 
   _buildMeta(comment) {
@@ -56,11 +64,11 @@ export class StructVisitor extends BaseCstVisitor {
     }
     const meta = this._buildMeta(comment);
 
-    return {
+    return this._buildComment({
       type,
       vars,
       meta,
-    };
+    }, comment);
   }
 
   memberName(ctx) {
