@@ -16,6 +16,7 @@ int main() {
   INSPECT_SIZE(struct Basic);
   INSPECT_SIZE(struct Example1);
   INSPECT_SIZE(struct Example2);
+  INSPECT_SIZE(struct Example3);
 
   puts("\n============\n");
 

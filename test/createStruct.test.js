@@ -48,7 +48,24 @@ test('createMany with more features', (t) => {
   e2.name[4] = ' '.charCodeAt(0);
   e2.name[5] = 'D'.charCodeAt(0);
   e2.name[6] = '.'.charCodeAt(0);
+  assert.throws(() => e2.name[16] = '?'.charCodeAt(0));
 
   assert.equal(e2.name.toString().slice(0, 7), 'Seva D.');
   assert.equal(e2.name[1], 'e'.charCodeAt(0));
+});
+
+test('createMany with more array access', (t) => {
+  const { Example3 } = createMany(traversedMoreFeatures, Buffer, { pointerSize: 8, bits: 64, endianness: os.endianness() });
+  const e = new Example3();
+  assert.equal(e.size, 2056);
+
+  e.c = 123;
+  assert.equal(e.c, 123);
+
+  e.m[0][1] = 1.1;
+  e.m[0][3] = 2.2;
+  assert.equal(e.m[0][1], 1.1);
+  assert.equal(e.m[0][3], 2.2);
+  e.m[1] = Buffer.from([0x9a, 0x99, 0x99, 0x99, 0x99, 0x99, 0xf1, 0x3f]);
+  assert.equal(e.m[1][0], 1.1);
 });

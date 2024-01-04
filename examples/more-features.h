@@ -13,3 +13,8 @@ struct __attribute__((__packed__)) Example2 {
   int *p;
   uint32_t * da[];
 };
+
+struct Example3 {
+  uint8_t c;
+  double m[16][16];
+};

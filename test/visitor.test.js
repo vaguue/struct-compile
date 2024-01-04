@@ -69,6 +69,23 @@ test('visitor', (t) => {
         },
       ],
       meta: { NE: true }
+    },
+    {
+      attributes: null,
+      members: [
+        {
+          meta: {},
+          type: 'uint8_t',
+          vars: [ { d: [], name: 'c' } ]
+        },
+        {
+          meta: {},
+          type: 'double',
+          vars: [{ d: [16, 16], name: 'm' }]
+        }
+      ],
+      meta: {},
+      name: 'Example3'
     }
   ]);
 

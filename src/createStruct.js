@@ -32,7 +32,7 @@ function accessorFromParams({ endianness, signed, size, customKey, action }) {
   return `${action}${size == 64 ? '' : (signed ? '' : 'U')}${key}${customKey ? '' : size}${size > 8 ? endianness : ''}`;
 };
 
-function proxyFromParams({ getter, setter, buffer, d: _d, size }) {
+function proxyFromParams({ getter, setter, buffer, d: _d, size, BufferImpl }) {
   const k = _d[0];
   const d = _d.slice(1);
   const chunkSize = size / k / 8;
@@ -47,7 +47,7 @@ function proxyFromParams({ getter, setter, buffer, d: _d, size }) {
           return target[getter](prop * chunkSize);
         }
         else {
-          return proxyFromParams({ getter, setter, buffer: buffer.subarray(prop * chunkSize, (prop + 1) * chunkSize), d, size: chunkSize });
+          return proxyFromParams({ getter, setter, buffer: buffer.subarray(prop * chunkSize, (prop + 1) * chunkSize), d, size: chunkSize * 8, BufferImpl });
         }
       }
       else if (typeof target[prop] == 'function') {
@@ -69,8 +69,8 @@ function proxyFromParams({ getter, setter, buffer, d: _d, size }) {
           target[setter](val, prop * chunkSize);
         }
         else {
-          if (val instanceof this.BufferImpl) {
-            val.copy(target.subarray(prop * chunkSize, (propd + 1) * chunkSize), 0, 0, Math.min(val.length, chunkSize));
+          if (val instanceof BufferImpl) {
+            val.copy(target.subarray(prop * chunkSize, (prop + 1) * chunkSize), 0, 0, Math.min(val.length, chunkSize));
           }
           else {
             target.subarray(prop * chunkSize, (propd + 1) * chunkSize).write(val.toString());
@@ -105,11 +105,9 @@ function createField(StructProto, offset, { signed, size: baseSize, name, meta, 
   if (d.length == 0) {
     Object.defineProperty(StructProto, name, {
       get() {
-        console.log(getter);
         return this._buf[getter](offset);
       },
       set(val) {
-        console.log(setter);
         this._buf[setter](val, offset);
       },
     });
@@ -117,7 +115,7 @@ function createField(StructProto, offset, { signed, size: baseSize, name, meta, 
   else {
     Object.defineProperty(StructProto, name, {
       get() {
-        return proxyFromParams({ getter, setter, buffer: this._buf.subarray(offset, offset + size), d, size });
+        return proxyFromParams({ getter, setter, buffer: this._buf.subarray(offset, offset + size), d, size, BufferImpl: this.BufferImpl });
       },
       set(val) {
         if (val instanceof this.BufferImpl) {
