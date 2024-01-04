@@ -3,6 +3,7 @@
 #include "stdio.h"
 #include "basic.h"
 #include "more-features.h"
+#include "readme.h"
 #include "to-inspect.h"
 
 #define INSPECT_SIZE(x) printf(#x" size: %lu\n", sizeof(x))
