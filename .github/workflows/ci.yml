@@ -10,6 +10,26 @@ on:
     branches: [ "release" ]
 
 jobs:
+  draft_release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body: |
+            🚀 This release contains necessary files to import struct-compile to your project. See README.md of this repo for more details.
+          draft: true
+          prerelease: false
   build:
     runs-on: ubuntu-latest
 
@@ -27,15 +47,14 @@ jobs:
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     - run: npm run bundle --if-present
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
+    - run: tar czvf build.tgz
+    - name: Upload
+      uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
-        body: |
-          🚀 This release contains necessary files to import struct-compile to your project. See README.md of this repo for more details.
-        draft: true
-        prerelease: false
+        upload_url: ${{ needs.draft_release.outputs.upload_url }}
+        asset_path: build.tgz
+        asset_name: build.tgz
+        asset_content_type: application/gzip
+
