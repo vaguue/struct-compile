@@ -21,8 +21,8 @@ test('createMany with more features', (t) => {
   const { Example1, Example2 } = createMany(traversedMoreFeatures, Buffer, { pointerSize: 8, bits: 64, endianness: os.endianness() });
   const e1 = new Example1();
   assert.equal(e1.size, 16);
-  e1.c = 0x42;
-  assert.equal(e1.c, 0x42);
+  e1.c = 'A';
+  assert.equal(e1.c, 0x41);
   e1.v = 0x0AAAAAAA;
   assert.equal(e1.v, 0x0AAAAAAA);
   e1.da = 0xAAAAAAAABBBBBBBBn;
@@ -30,7 +30,7 @@ test('createMany with more features', (t) => {
   
   //TODO seems to be a bug
   //assert.equal(e1.toObject(), { c: 66, v: 178956970, da: 12297829382759365563n });
-  assert.equal(Buffer.compare(e1.buffer, Buffer.from([0x42, 0x0a, 0xaa, 0xaa, 0xaa, 0xbb, 0xbb, 0xbb, 0xbb, 0xaa, 0xaa, 0xaa, 0xaa, 0x00, 0x00, 0x00])), 0);
+  assert.equal(Buffer.compare(e1.buffer, Buffer.from([0x41, 0x0a, 0xaa, 0xaa, 0xaa, 0xbb, 0xbb, 0xbb, 0xbb, 0xaa, 0xaa, 0xaa, 0xaa, 0x00, 0x00, 0x00])), 0);
 
   const e2 = new Example2();
   assert.equal(e2.size, 32);
@@ -44,10 +44,10 @@ test('createMany with more features', (t) => {
 
   assert.equal(e2.name.toString().slice(0, 4), 'Sava');
 
-  e2.name[1] = 'e'.charCodeAt(0);
-  e2.name[4] = ' '.charCodeAt(0);
-  e2.name[5] = 'D'.charCodeAt(0);
-  e2.name[6] = '.'.charCodeAt(0);
+  e2.name[1] = 'e';
+  e2.name[4] = ' ';
+  e2.name[5] = 'D';
+  e2.name[6] = '.';
   assert.throws(() => e2.name[16] = '?'.charCodeAt(0));
 
   assert.equal(e2.name.toString().slice(0, 7), 'Seva D.');

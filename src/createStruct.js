@@ -1,5 +1,5 @@
 import { cDataTypes } from './dataTypes.js';
-import { maybeNumber } from './number.js';
+import { maybeNumber, forSize } from './number.js';
 
 function endiannessFromMeta(defaultEndianness, meta) {
   let isBE = false;
@@ -66,7 +66,7 @@ function proxyFromParams({ getter, setter, buffer, d: _d, size, BufferImpl }) {
           throw new Error(`Out of bounds value, expected index to be 0 <= index < ${k}`);
         }
         if (d.length == 0) {
-          target[setter](val, prop * chunkSize);
+          target[setter](forSize(chunkSize * 8, val), prop * chunkSize);
         }
         else {
           if (val instanceof BufferImpl) {
@@ -108,7 +108,7 @@ function createField(StructProto, offset, { signed, size: baseSize, name, meta, 
         return this._buf[getter](offset);
       },
       set(val) {
-        this._buf[setter](val, offset);
+        this._buf[setter](forSize(size, val), offset);
       },
     });
   }
