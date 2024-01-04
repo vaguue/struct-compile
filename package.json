@@ -9,8 +9,7 @@
     "test-cov": "node --test --experimental-test-coverage --test-reporter=lcov --test-reporter-destination=lcov.info test/*.test.js",
     "create-diagram": "node src/createDiagram.js",
     "generate-test-data": "node src/generateData.js",
-    "bundle": "rollup --config rollup.config.js",
-    "prepare": "husky install"
+    "bundle": "rollup --config rollup.config.js"
   },
   "keywords": [
     "struct",
