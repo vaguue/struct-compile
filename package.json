@@ -1,7 +1,7 @@
 {
   "name": "struct-compile",
   "version": "1.0.0",
-  "description": "Compile C structs to JavaScript with one function",
+  "description": "Create a JavaScript class from a C structure",
   "type": "module",
   "main": "./build/index.cjs",
   "scripts": {
