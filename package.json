@@ -9,6 +9,7 @@
     "test-cov": "node --test --experimental-test-coverage test/*.test.js",
     "create-diagram": "node src/createDiagram.js",
     "generate-test-data": "node src/generateData.js",
+    "bundle": "rollup --config rollup.config.js",
     "prepare": "husky install"
   },
   "keywords": [
@@ -25,16 +26,23 @@
     "#src/*": "./src/*.js"
   },
   "exports": {
-    "import": "./src/index.js"
+    "node": {
+      "import": "./src/index.js",
+      "require": "./build/index.js"
+    }
   },
   "dependencies": {
     "chevrotain": "^11.0.3"
   },
-  "engines" : {
+  "engines": {
     "node": ">=16.18.0"
   },
   "devDependencies": {
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-terser": "^0.4.4",
     "husky": "^8.0.3",
-    "lodash": "^4.17.21"
+    "lodash": "^4.17.21",
+    "rollup": "^4.9.2",
+    "rollup-plugin-polyfill-node": "^0.13.0"
   }
 }
