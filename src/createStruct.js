@@ -163,7 +163,7 @@ function alignOffset(offset, size) {
   return offset + extra;
 }
 
-export function create({ name, attributes, members, meta, }, BufferImpl, arch) {
+export function create({ name, attributes, members, meta, }, arch, BufferImpl) {
   function Struct(arg) {
     if (arg === undefined) {
       this._buf = BufferImpl.alloc(this.size);

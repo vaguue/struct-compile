@@ -8,7 +8,7 @@ import traversedBasic from './data/traversed-basic.json' assert { type: 'json' }
 import traversedMoreFeatures from './data/traversed-more-features.json' assert { type: 'json' };
 
 test('createMany basic', (t) => {
-  const { Basic } = createMany(traversedBasic, Buffer, { pointerSize: 8, bits: 64, endianness: os.endianness() });
+  const { Basic } = createMany(traversedBasic, { pointerSize: 8, bits: 64, endianness: os.endianness() }, Buffer);
   const basic = new Basic();
   assert.equal(basic.size, 1);
   basic.c = 0x42;
@@ -18,7 +18,7 @@ test('createMany basic', (t) => {
 });
 
 test('createMany with more features', (t) => {
-  const { Example1, Example2 } = createMany(traversedMoreFeatures, Buffer, { pointerSize: 8, bits: 64, endianness: os.endianness() });
+  const { Example1, Example2 } = createMany(traversedMoreFeatures, { pointerSize: 8, bits: 64, endianness: os.endianness() }, Buffer);
   const e1 = new Example1();
   assert.equal(e1.size, 16);
   e1.c = 'A';
@@ -55,7 +55,7 @@ test('createMany with more features', (t) => {
 });
 
 test('createMany with more array access', (t) => {
-  const { Example3 } = createMany(traversedMoreFeatures, Buffer, { pointerSize: 8, bits: 64, endianness: os.endianness() });
+  const { Example3 } = createMany(traversedMoreFeatures, { pointerSize: 8, bits: 64, endianness: os.endianness() }, Buffer);
   const e = new Example3();
   assert.equal(e.size, 2056);
 
