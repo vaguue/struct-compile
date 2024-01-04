@@ -10,7 +10,7 @@ import traversedMoreFeatures from './data/traversed-more-features.json' assert {
 test('createMany basic', (t) => {
   const { Basic } = createMany(traversedBasic, { pointerSize: 8, bits: 64, endianness: os.endianness() }, Buffer);
   const basic = new Basic();
-  assert.equal(basic.size, 1);
+  assert.equal(basic.length, 1);
   basic.c = 0x42;
   assert.equal(basic.c, 0x42);
   assert.deepEqual(basic.toObject(), { c: 0x42 });
@@ -20,7 +20,7 @@ test('createMany basic', (t) => {
 test('createMany with more features', (t) => {
   const { Example1, Example2 } = createMany(traversedMoreFeatures, { pointerSize: 8, bits: 64, endianness: os.endianness() }, Buffer);
   const e1 = new Example1();
-  assert.equal(e1.size, 16);
+  assert.equal(e1.length, 16);
   e1.c = 'A';
   assert.equal(e1.c, 0x41);
   e1.v = 0x0AAAAAAA;
@@ -33,7 +33,7 @@ test('createMany with more features', (t) => {
   assert.equal(Buffer.compare(e1.buffer, Buffer.from([0x41, 0x0a, 0xaa, 0xaa, 0xaa, 0xbb, 0xbb, 0xbb, 0xbb, 0xaa, 0xaa, 0xaa, 0xaa, 0x00, 0x00, 0x00])), 0);
 
   const e2 = new Example2();
-  assert.equal(e2.size, 32);
+  assert.equal(e2.length, 32);
 
   e2.dbl = 1.1;
   e2.p = 0xAAAAAAAABBBBBBBBn;
@@ -57,7 +57,7 @@ test('createMany with more features', (t) => {
 test('createMany with more array access', (t) => {
   const { Example3 } = createMany(traversedMoreFeatures, { pointerSize: 8, bits: 64, endianness: os.endianness() }, Buffer);
   const e = new Example3();
-  assert.equal(e.size, 2056);
+  assert.equal(e.length, 2056);
 
   e.c = 123;
   assert.equal(e.c, 123);

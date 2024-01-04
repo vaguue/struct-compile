@@ -24,18 +24,18 @@ function endiannessFromMeta(defaultEndianness, meta) {
   return defaultEndianness;
 };
 
-function accessorFromParams({ endianness, signed, size, customKey, action }) {
-  let key = customKey ?? (size == 64 ? 'BigInt' : 'Int');
+function accessorFromParams({ endianness, signed, length, customKey, action }) {
+  let key = customKey ?? (length == 64 ? 'BigInt' : 'Int');
   if (!signed && key == 'BigInt') {
     key = 'BigUInt';
   }
-  return `${action}${size == 64 ? '' : (signed ? '' : 'U')}${key}${customKey ? '' : size}${size > 8 ? endianness : ''}`;
+  return `${action}${length == 64 ? '' : (signed ? '' : 'U')}${key}${customKey ? '' : length}${length > 8 ? endianness : ''}`;
 };
 
-function proxyFromParams({ getter, setter, buffer, d: _d, size, BufferImpl }) {
+function proxyFromParams({ getter, setter, buffer, d: _d, length, BufferImpl }) {
   const k = _d[0];
   const d = _d.slice(1);
-  const chunkSize = size / k / 8;
+  const chunkSize = length / k / 8;
   return new Proxy(buffer, {
     get(target, _prop, receiver) {
       const prop = maybeNumber(_prop);
@@ -47,7 +47,7 @@ function proxyFromParams({ getter, setter, buffer, d: _d, size, BufferImpl }) {
           return target[getter](prop * chunkSize);
         }
         else {
-          return proxyFromParams({ getter, setter, buffer: buffer.subarray(prop * chunkSize, (prop + 1) * chunkSize), d, size: chunkSize * 8, BufferImpl });
+          return proxyFromParams({ getter, setter, buffer: buffer.subarray(prop * chunkSize, (prop + 1) * chunkSize), d, length: chunkSize * 8, BufferImpl });
         }
       }
       else if (typeof target[prop] == 'function') {
@@ -89,17 +89,17 @@ function proxyFromParams({ getter, setter, buffer, d: _d, size, BufferImpl }) {
   });
 }
 
-function createField(StructProto, offset, { signed, size: baseSize, name, meta, customKey = null, d }, defaultEndianness) {
+function createField(StructProto, offset, { signed, length: baseSize, name, meta, customKey = null, d }, defaultEndianness) {
   if (baseSize == 0) return 0;
 
   const endianness = endiannessFromMeta(defaultEndianness, meta);
 
-  const getter = accessorFromParams({ endianness, signed, size: baseSize, customKey, action: 'read' });
-  const setter = accessorFromParams({ endianness, signed, size: baseSize, customKey, action: 'write' });
+  const getter = accessorFromParams({ endianness, signed, length: baseSize, customKey, action: 'read' });
+  const setter = accessorFromParams({ endianness, signed, length: baseSize, customKey, action: 'write' });
 
-  let size = baseSize;
+  let length = baseSize;
   d.forEach(k => {
-    size *= k;
+    length *= k;
   });
 
   if (d.length == 0) {
@@ -108,48 +108,48 @@ function createField(StructProto, offset, { signed, size: baseSize, name, meta, 
         return this._buf[getter](offset);
       },
       set(val) {
-        this._buf[setter](forSize(size, val), offset);
+        this._buf[setter](forSize(length, val), offset);
       },
     });
   }
   else {
     Object.defineProperty(StructProto, name, {
       get() {
-        return proxyFromParams({ getter, setter, buffer: this._buf.subarray(offset, offset + size), d, size, BufferImpl: this.BufferImpl });
+        return proxyFromParams({ getter, setter, buffer: this._buf.subarray(offset, offset + length), d, length, BufferImpl: this.BufferImpl });
       },
       set(val) {
         if (val instanceof this.BufferImpl) {
-          val.copy(this._buf.subarray(offset, size), offset, 0, Math.min(val.length, size));
+          val.copy(this._buf.subarray(offset, length), offset, 0, Math.min(val.length, length));
         }
         else {
-          this._buf.subarray(offset, size).write(val.toString());
+          this._buf.subarray(offset, length).write(val.toString());
         }
       }
     });
   }
 
-  return size;
+  return length;
 }
 
 function getPropertyData(arch, { type, meta, vars }) {
-  let size, signed, customKey;
+  let length, signed, customKey;
   if (type.includes('*')) {
-    size = arch.pointerSize * 8;
+    length = arch.pointerSize * 8;
     signed = false;
   }
   else {
-    ({ signed, size, customKey } = cDataTypes[type]);
-    if (typeof size == 'function') {
-      size = size(arch);
+    ({ signed, length, customKey } = cDataTypes[type]);
+    if (typeof length == 'function') {
+      length = length(arch);
     }
   }
 
   return vars.map(v => {
     const { name, d } = v;
-    const res = { name, meta, signed, size, customKey, d };
+    const res = { name, meta, signed, length, customKey, d };
     d.forEach(k => {
       if (k == 0) {
-        res.size = 0;
+        res.length = 0;
       }
     });
 
@@ -157,30 +157,30 @@ function getPropertyData(arch, { type, meta, vars }) {
   });
 }
 
-function alignOffset(offset, size) {
+function alignOffset(offset, length) {
   if (offset == 0) return offset;
-  const extra = (size - 1) - (offset - 1) % (size);
+  const extra = (length - 1) - (offset - 1) % (length);
   return offset + extra;
 }
 
 export function create({ name, attributes, members, meta, }, arch, BufferImpl) {
   function Struct(arg) {
     if (arg === undefined) {
-      this._buf = BufferImpl.alloc(this.size);
+      this._buf = BufferImpl.alloc(this.length);
     }
     else if (arg instanceof BufferImpl) {
-      if (arg.length < this.size) {
-        throw new Error(`Invalid buffer size: expected at least ${this.size} bytes, got ${this._buf.length} bytes`);
+      if (arg.length < this.length) {
+        throw new Error(`Invalid buffer length: expected at least ${this.length} bytes, got ${this._buf.length} bytes`);
       }
       this._buf = arg;
     }
     else if (typeof arg == 'object') {
       const { zeroed } = arg;
       if (zeroed) {
-        this._buf = BufferImpl.alloc(this.size);
+        this._buf = BufferImpl.alloc(this.length);
       }
       else {
-        this._buf = BufferImpl.allocUnsafe(this.size);
+        this._buf = BufferImpl.allocUnsafe(this.length);
       }
     }
   }
@@ -218,8 +218,8 @@ export function create({ name, attributes, members, meta, }, arch, BufferImpl) {
       if (!(val instanceof BufferImpl)) {
         throw new Error(`Invalid buffer type: expected ${BufferImpl}`);
       }
-      if (val.length < this.size) {
-        throw new Error(`Invalid buffer size: expected at least ${this.size} bytes, got ${this._buf.length} bytes`);
+      if (val.length < this.length) {
+        throw new Error(`Invalid buffer length: expected at least ${this.length} bytes, got ${this._buf.length} bytes`);
       }
       this._buf = val;
     }
@@ -245,19 +245,19 @@ export function create({ name, attributes, members, meta, }, arch, BufferImpl) {
     const propData = getPropertyData(arch, member);
     for (const prop of propData) {
       if (!packed) {
-        offset = alignOffset(offset, prop.size / 8);
+        offset = alignOffset(offset, prop.length / 8);
       }
       if (!skipAlign) {
-        aligned = Math.max(aligned, prop.size / 8);
+        aligned = Math.max(aligned, prop.length / 8);
       }
       offset += createField(Struct.prototype, offset, prop, endianness) / 8;
       Struct.config.fields.push(prop.name);
     }
   });
 
-  const size = skipAlign ? offset : alignOffset(offset, aligned);
-  Object.defineProperty(Struct.prototype, 'size', { value: size });
-  Struct.size = Struct.config.size = size;
+  const length = skipAlign ? offset : alignOffset(offset, aligned);
+  Object.defineProperty(Struct.prototype, 'length', { value: length });
+  Struct.config.length = length;
 
   return Struct;
 }
