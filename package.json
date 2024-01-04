@@ -1,8 +1,8 @@
 {
-  "name": "struct",
+  "name": "struct-compile",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Compile C structs to JavaScript with one function",
+  "main": "./src/index.js",
   "type": "module",
   "scripts": {
     "test": "node --test test/*.test.js",
@@ -11,14 +11,27 @@
     "generate-test-data": "node src/generateData.js",
     "prepare": "husky install"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "struct",
+    "C",
+    "cstruct",
+    "pack",
+    "unpack",
+    "binary"
+  ],
+  "author": "Seva D. <sabrinarempel7@gmail.com>",
+  "license": "GPL-3.0",
   "imports": {
     "#src/*": "./src/*.js"
   },
+  "exports": {
+    "import": "./src/index.js"
+  },
   "dependencies": {
     "chevrotain": "^11.0.3"
+  },
+  "engines" : {
+    "node": ">=16.18.0"
   },
   "devDependencies": {
     "husky": "^8.0.3",

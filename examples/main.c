@@ -75,6 +75,7 @@ int main() {
   PRINT(BOOL_ALIGN);
 
   INSPECT_SIZE(struct BitFields);
+  INSPECT_SIZE(struct Inspect7);
 
   return 0;
 }

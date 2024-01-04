@@ -263,5 +263,6 @@ export function create({ name, attributes, members, meta, }, arch, BufferImpl) {
 }
 
 export function createMany(structs, BufferImpl, arch) {
+  if (!structs) return {};
   return structs.reduce((res, e) => ({ ...res, [e.name]: create(e, BufferImpl, arch) }), {});
 }

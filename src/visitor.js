@@ -16,6 +16,7 @@ export class StructVisitor extends BaseCstVisitor {
     // ctx.columnsList is an array, while this.visit accepts a CSTNode
     // but if an array is passed to this.visit it will act as though the first element of the array has been passed.
     // this means "this.visit(ctx.columnsList)" is equivalent to "this.visit(ctx.columnsList[0])"
+    if (!ctx?.struct?.length) return [];
     const structs = Array.from({ length: ctx.struct.length }, (_, i) => this.visit(ctx.struct[i]));
 
     return structs;

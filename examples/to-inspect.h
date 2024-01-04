@@ -60,6 +60,11 @@ struct Inspect6 {
   uint8_t c11;
 } __attribute__((packed));
 
+struct Inspect7 {
+  uint32_t i;
+  char* p;
+};
+
 struct BitFields {
   uint8_t 
    c1: 1,
