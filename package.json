@@ -4,6 +4,10 @@
   "description": "Create a JavaScript class from a C structure",
   "type": "module",
   "main": "./build/index.cjs",
+  "files": [
+    "build/*",
+    "src/*"
+  ],
   "scripts": {
     "test": "node --test test/*.test.js",
     "test-cov": "node --test --experimental-test-coverage --test-reporter=lcov --test-reporter-destination=lcov.info test/*.test.js",
