@@ -20,6 +20,14 @@
     "unpack",
     "binary"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/vaguue/struct-compile.git"
+  },
+  "homepage": "https://github.com/vaguue/struct-compile",
+  "bugs": {
+    "url": "https://github.com/vaguue/struct-compile/issues"
+  },
   "author": "Seva D. <sabrinarempel7@gmail.com>",
   "license": "GPL-3.0",
   "imports": {
