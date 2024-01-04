@@ -31,6 +31,7 @@ jobs:
           draft: true
           prerelease: false
   build:
+    needs: [draft_release]
     runs-on: ubuntu-latest
 
     steps:
