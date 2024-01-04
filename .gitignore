@@ -1,3 +1,4 @@
 scr.sh
 node_modules
 build
+lcov.info
