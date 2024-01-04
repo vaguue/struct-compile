@@ -1,4 +1,5 @@
-# struct-compile
+# struct-compile [![codecov](https://codecov.io/github/vaguue/struct-compile/graph/badge.svg?token=RX79CQ4RME)](https://codecov.io/github/vaguue/struct-compile)
+
 
 ## Overview
 
