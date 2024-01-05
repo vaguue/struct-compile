@@ -1,7 +1,10 @@
 # struct-compile [![codecov](https://codecov.io/github/vaguue/struct-compile/graph/badge.svg?token=RX79CQ4RME)](https://codecov.io/github/vaguue/struct-compile) [![GitHub license](https://img.shields.io/github/license/vaguue/struct-compile?style=flat)](https://github.com/vaguue/struct-compile/blob/main/LICENSE) [![npm](https://img.shields.io/npm/v/struct-compile)](https://www.npmjs.com/package/struct-compile)
 
 ## Installation
-```npm i struct-compile --save```
+
+```bash
+npm i struct-compile --save
+```
 
 ## Overview
 
