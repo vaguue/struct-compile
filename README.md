@@ -52,6 +52,8 @@ The syntax for creating structures takes into account C rules for aligning objec
 
 ## Compatibility and Project Checklist
 
+An important note is that the input syntax is the *subset* of the C syntax, current syntax rules can be viewed [here](https://raw.githack.com/vaguue/struct-compile/main/assets/generated_diagrams.html). 
+
 This project has been tailored with specific compatibilities and limitations. Below is a checklist highlighting the current state of support for various features:
 
 | Feature             | Supported        | Notes                                         |
