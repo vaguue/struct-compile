@@ -42,13 +42,13 @@ const { Example, PDU } = compile(`
   };
 `);
 
-const obj = new PDU();
+const pdu = new PDU();
 
-obj.name = 'seva';
-obj.dbl = 1.1;
+pdu.name = 'seva';
+pdu.dbl = 1.1;
 
-console.log('PDU size: ', obj.length);
-console.log('PDU buffer example: ', obj.buffer);
+console.log('PDU size:', pdu.length);
+console.log('PDU buffer example:', pdu.buffer);
 ```
 
 The syntax for creating structures takes into account C rules for aligning objects within a structure, and auxiliary comments help to automatically set the endianness of the field. Learn more about alignment [here](https://learn.microsoft.com/en-us/cpp/c-language/padding-and-alignment-of-structure-members) and [here](https://gcc.gnu.org/onlinedocs/gcc-4.1.2/gcc/Type-Attributes.html).
