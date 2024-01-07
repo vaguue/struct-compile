@@ -1,5 +1,6 @@
 import { cDataTypes } from './dataTypes.js';
 import { maybeNumber, forSize } from './number.js';
+import { SingleStructReader, StructReader } from './reader.js';
 
 function endiannessFromMeta(defaultEndianness, meta) {
   let isBE = false;
@@ -238,6 +239,14 @@ export function create({ name, attributes, members, meta, comment }, arch, Buffe
     return res;
   };
 
+  Struct.createSingleReader = function(options = {}) {
+    return new SingleStructReader({ ...options, Struct });
+  };
+
+  Struct.createReader = function(options = {}) {
+    return new StructReader({ ...options, Struct });
+  };
+
   let offset = 0;
   const endianness = endiannessFromMeta(arch.endianness, meta);
 
@@ -269,6 +278,7 @@ export function create({ name, attributes, members, meta, comment }, arch, Buffe
   const length = skipAlign ? offset : alignOffset(offset, aligned);
   Object.defineProperty(Struct.prototype, 'length', { value: length });
   Struct.config.length = length;
+
 
   return Struct;
 }
