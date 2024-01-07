@@ -10,10 +10,12 @@
   ],
   "scripts": {
     "test": "node --test test/*.test.js",
+    "test-cov-text": "node --test --experimental-test-coverage test/*.test.js",
     "test-cov": "node --test --experimental-test-coverage --test-reporter=lcov --test-reporter-destination=lcov.info test/*.test.js",
     "create-diagram": "node src/createDiagram.js",
     "generate-test-data": "node src/generateData.js",
-    "bundle": "rollup --config rollup.config.js"
+    "bundle": "rollup --config rollup.config.js",
+    "prepublishOnly": "npm run test && npm run bundle"
   },
   "keywords": [
     "struct",

@@ -13,3 +13,17 @@ export function trim(str) {
 }
 
 export const isCapital = str => str[0].toUpperCase() == str[0];
+
+export const toString = (obj) => {
+  return obj.toString();
+}
+
+export const trimWithEllipsis = (str, n = 8) => {
+  if (typeof str != 'string') {
+    return '';
+  }
+  if (str.length <= n) {
+    return str;
+  }
+  return str.slice(0, n) + '...';
+}

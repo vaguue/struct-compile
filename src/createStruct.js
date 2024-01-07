@@ -1,5 +1,7 @@
 import { cDataTypes } from './dataTypes.js';
 import { maybeNumber, forSize } from './number.js';
+import { trimWithEllipsis, toString } from './strings.js';
+import { multiDimGet, multiDimSet } from './array.js';
 import { SingleStructReader, StructReader } from './reader.js';
 
 function endiannessFromMeta(defaultEndianness, meta) {
@@ -90,15 +92,15 @@ function proxyFromParams({ getter, setter, buffer, d: _d, length, BufferImpl }) 
   });
 }
 
-function createField(StructProto, offset, { signed, length: baseSize, name, meta, customKey = null, d }, defaultEndianness) {
-  if (baseSize == 0) return 0;
+function createField(StructProto, offset, { signed, length: baseLength, name, meta, customKey = null, d }, defaultEndianness) {
+  if (baseLength == 0) return 0;
 
   const endianness = endiannessFromMeta(defaultEndianness, meta);
 
-  const getter = accessorFromParams({ endianness, signed, length: baseSize, customKey, action: 'read' });
-  const setter = accessorFromParams({ endianness, signed, length: baseSize, customKey, action: 'write' });
+  const getter = accessorFromParams({ endianness, signed, length: baseLength, customKey, action: 'read' });
+  const setter = accessorFromParams({ endianness, signed, length: baseLength, customKey, action: 'write' });
 
-  let length = baseSize;
+  let length = baseLength;
   d.forEach(k => {
     length *= k;
   });
@@ -120,7 +122,7 @@ function createField(StructProto, offset, { signed, length: baseSize, name, meta
       },
       set(val) {
         if (val instanceof this.BufferImpl) {
-          val.copy(this._buf.subarray(offset, length), offset, 0, Math.min(val.length, length));
+          val.copy(this._buf, offset, 0, Math.min(val.length, length));
         }
         else {
           this._buf.subarray(offset, length).write(val.toString());
@@ -176,13 +178,26 @@ export function create({ name, attributes, members, meta, comment }, arch, Buffe
       this._buf = arg;
     }
     else if (typeof arg == 'object') {
-      const { zeroed } = arg;
+      const { _structCompileInternal = {} } = arg;
+      const zeroed = _structCompileInternal.zeroed ?? true;
       if (zeroed) {
         this._buf = BufferImpl.alloc(this.length);
       }
       else {
         this._buf = BufferImpl.allocUnsafe(this.length);
       }
+
+      Object.entries(Struct.config.fields).forEach(([key, val]) => {
+        if (arg.hasOwnProperty(key)) {
+          const argValue = arg[key];
+          if (val.d.length > 0 && Array.isArray(argValue)) {
+            multiDimSet(this[key], val.d, argValue);
+          }
+          else {
+            this[key] = argValue;
+          }
+        }
+      });
     }
   }
 
@@ -209,7 +224,7 @@ export function create({ name, attributes, members, meta, comment }, arch, Buffe
   }
 
   Object.defineProperty(Struct, 'name', { value: name });
-  Object.defineProperty(Struct, 'config', { value: { name, attributes, members, meta, fields: [] } });
+  Object.defineProperty(Struct, 'config', { value: { name, attributes, members, meta, fields: {} } });
   Object.defineProperty(Struct.prototype, 'BufferImpl', { value: BufferImpl });
   Object.defineProperty(Struct.prototype, 'buffer', { 
     get() {
@@ -227,14 +242,25 @@ export function create({ name, attributes, members, meta, comment }, arch, Buffe
   });
 
   Struct.prototype.toObject = function() {
-    return Struct.config.fields.reduce((res, e) => ({ ...res, [e]: this[e] }), {});
+    const res = {};
+    for (const [key, val] of Object.entries(Struct.config.fields)) {
+      if (val.d.length > 0) {
+        res[key] = multiDimGet(this[key], val.d);
+      }
+      else {
+        res[key] = this[key];
+      }
+    }
+    return res;
   };
 
   Struct.prototype.toString = function() {
     let res = `<${name}`;
-    Struct.config.fields.forEach(f => {
-      res = res + ` | ${f}: ${this[f]}`;
-    })
+    Object.entries(Struct.config.fields).forEach(([key, val]) => {
+      if (val.d.length == 0) {
+        res = res + ` | ${key}: ${trimWithEllipsis(toString(this[key]))}`;
+      }
+    });
     res += '>';
     return res;
   };
@@ -271,7 +297,10 @@ export function create({ name, attributes, members, meta, comment }, arch, Buffe
         aligned = Math.max(aligned, prop.length / 8);
       }
       offset += createField(Struct.prototype, offset, prop, endianness) / 8;
-      Struct.config.fields.push(prop.name);
+      if (Struct.config.fields[prop.name] !== undefined) {
+        throw new Error(`Duplicate member names: ${prop.name}`);
+      }
+      Struct.config.fields[prop.name] = prop;
     }
   });
 
