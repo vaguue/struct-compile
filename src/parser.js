@@ -1,31 +1,6 @@
 import { createToken, CstParser, Lexer } from 'chevrotain';
 
-import { matchType } from './dataTypes.js';
-
-const WhiteSpace = createToken({ name: 'Whitespace', pattern: /[\s\n]+/, group: Lexer.SKIPPED, });
-const MultiLineComment = createToken({ name: 'MultiLineComment', pattern: /\/\*.*?\*\//, group: Lexer.SKIPPED, });
-const Const = createToken({ name: 'Const', pattern: /const/, group: Lexer.SKIPPED });
-const OneLineComment = createToken({ name: 'OneLineComment', pattern: /\/\/.*?\n/ });
-const Struct = createToken({ name: 'Struct', pattern: /struct/ });
-const Attributes = createToken({ name: 'Attributes', pattern: /__attribute__/ });
-const CString = createToken({ name: 'CString', pattern: /"([^"]*)"/ });
-const RoundBracketOpen = createToken({ name: 'RoundBracketOpen', pattern: /\(/ });
-const RoundBracketClose = createToken({ name: 'RoundBracketClose', pattern: /\)/ });
-const SquareBracketOpen = createToken({ name: 'SquareBracketOpen', pattern: /\[/ });
-const SquareBracketClose = createToken({ name: 'SquareBracketClose', pattern: /\]/ });
-const BracesOpen = createToken({ name: 'BracesOpen', pattern: /\{/ });
-const BracesClose = createToken({ name: 'BracesClose', pattern: /\}/ });
-const TypeKeyword = createToken({ name: 'TypeKeyword', pattern: { exec: matchType }, line_breaks: true });
-const Pointer = createToken({ name: 'Pointer', pattern: /\*/ });
-const Identifier = createToken({ name: 'Identifier', pattern: /[_a-zA-Z][\w_]*/ });
-const Comma = createToken({ name: 'Comma', pattern: /,/ });
-const Semicolon = createToken({ name: 'Semicolon', pattern: /;/ });
-const Num = createToken({ name: 'Num', pattern: /[0-9]+/ });
-const AnyToken = createToken({ name: 'AnyToken', pattern: /./ });
-
-
-const allTokens = [WhiteSpace, MultiLineComment, Const, Pointer, Semicolon, OneLineComment, RoundBracketOpen, RoundBracketClose, SquareBracketOpen, SquareBracketClose, BracesOpen, BracesClose, TypeKeyword, Struct, Attributes, CString, Identifier, Comma, Num, AnyToken];
-const StructLexer = new Lexer(allTokens);
+import { StructLexer, tokens, allTokens } from './lexer.js';
 
 export class StructParser extends CstParser {
   constructor() {
@@ -33,7 +8,7 @@ export class StructParser extends CstParser {
 
     const $ = this;
     
-    this.initBracketLame(RoundBracketOpen, RoundBracketClose, 'bracketExpression');
+    this.initBracketLame(tokens.RoundBracketOpen, tokens.RoundBracketClose, 'bracketExpression');
     this.initSquareBracket();
 
     this.initAttributesDecl();
@@ -61,11 +36,11 @@ export class StructParser extends CstParser {
       $.CONSUME(op);
       $.MANY(() => {
         $.OR([
-          { ALT: () => $.CONSUME(Identifier) },
-          { ALT: () => $.CONSUME(Semicolon) },
-          { ALT: () => $.CONSUME(CString) },
-          { ALT: () => $.CONSUME(Comma) },
-          { ALT: () => $.CONSUME(Num) },
+          { ALT: () => $.CONSUME(tokens.Identifier) },
+          { ALT: () => $.CONSUME(tokens.Semicolon) },
+          { ALT: () => $.CONSUME(tokens.CString) },
+          { ALT: () => $.CONSUME(tokens.Comma) },
+          { ALT: () => $.CONSUME(tokens.Num) },
           { ALT: () => $.SUBRULE($[name]) },
           ...additionalSubrules.map(e => ({ ALT: () => $.SUBRULE($[e]) }))
         ]);
@@ -77,18 +52,18 @@ export class StructParser extends CstParser {
   initSquareBracket() {
     const $ = this;
     $.RULE('squareBracketExpression', () => {
-      $.CONSUME(SquareBracketOpen);
+      $.CONSUME(tokens.SquareBracketOpen);
       $.MANY(() => {
-        $.CONSUME(Num);
+        $.CONSUME(tokens.Num);
       });
-      $.CONSUME(SquareBracketClose);
+      $.CONSUME(tokens.SquareBracketClose);
     });
   }
 
   initMemberName() {
     const $ = this;
     $.RULE('memberName', () => {
-      $.CONSUME(Identifier);
+      $.CONSUME(tokens.Identifier);
       $.MANY(() => {
         $.SUBRULE($.squareBracketExpression);
       });
@@ -99,25 +74,25 @@ export class StructParser extends CstParser {
     const $ = this;
     $.RULE('member', () => {
       $.OPTION1(() => {
-        $.CONSUME1(OneLineComment);
+        $.CONSUME1(tokens.OneLineComment);
       });
-      $.CONSUME(TypeKeyword);
+      $.CONSUME(tokens.TypeKeyword);
       $.MANY1(() => {
-        $.CONSUME(Pointer);
+        $.CONSUME(tokens.Pointer);
       });
       $.SUBRULE1($.memberName);
       $.MANY2(() => {
-        $.CONSUME(Comma);
+        $.CONSUME(tokens.Comma);
         $.SUBRULE2($.memberName);
       });
-      $.CONSUME(Semicolon);
+      $.CONSUME(tokens.Semicolon);
     });
   }
   
   initAttributesDecl() {
     const $ = this;
     $.RULE('attributes', () => {
-      $.CONSUME(Attributes);
+      $.CONSUME(tokens.Attributes);
       $.SUBRULE($.bracketExpression);
     });
   }
@@ -126,22 +101,22 @@ export class StructParser extends CstParser {
     const $ = this;
     $.RULE('struct', () => {
       $.OPTION1(() => {
-        $.CONSUME(OneLineComment);
+        $.CONSUME(tokens.OneLineComment);
       });
-      $.CONSUME(Struct);
+      $.CONSUME(tokens.Struct);
       $.OPTION2(() => {
         $.SUBRULE1($.attributes);
       });
-      $.CONSUME(Identifier);
-      $.CONSUME(BracesOpen);
+      $.CONSUME(tokens.Identifier);
+      $.CONSUME(tokens.BracesOpen);
       $.MANY(() => {
         $.SUBRULE($.member);
       });
-      $.CONSUME(BracesClose);
+      $.CONSUME(tokens.BracesClose);
       $.OPTION3(() => {
         $.SUBRULE2($.attributes);
       });
-      $.CONSUME(Semicolon);
+      $.CONSUME(tokens.Semicolon);
     });
   }
 
