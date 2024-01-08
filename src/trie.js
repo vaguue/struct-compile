@@ -42,7 +42,12 @@ export class Trie {
         i = skipWhitespace(text, i) - 1;
       }
       if (current.isEnd) {
-        res = [text.slice(startOffset, i + 1)];
+        if (i < text.length - 1 && /\w/.test(text[i + 1])) {
+          continue;
+        }
+        else {
+          res = [text.slice(startOffset, i + 1)];
+        }
       }
     }
     return res;
