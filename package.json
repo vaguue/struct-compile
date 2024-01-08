@@ -1,6 +1,6 @@
 {
   "name": "struct-compile",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Create a JavaScript class from a C structure",
   "type": "module",
   "main": "./build/index.cjs",
