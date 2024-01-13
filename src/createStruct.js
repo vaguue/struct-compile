@@ -160,7 +160,7 @@ function getPropertyData(arch, { type, meta, vars, comment }) {
   });
 }
 
-function alignOffset(offset, length) {
+export function alignOffset(offset, length) {
   if (offset == 0) return offset;
   const extra = (length - 1) - (offset - 1) % (length);
   return offset + extra;

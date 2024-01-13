@@ -10,3 +10,5 @@ export function compile(str, arch = currentArch, BufferImpl = Buffer) {
 export function fromConfig(config, arch = currentArch, BufferImpl = Buffer) {
   return create(config, arch, BufferImpl);
 }
+
+export { alignOffset } from './createStruct.js';
