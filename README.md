@@ -77,10 +77,10 @@ This project has been tailored with specific compatibilities and limitations. Be
 
 | Feature             | Supported        | Notes                                         |
 |---------------------|------------------|-----------------------------------------------|
-| Bitfields           | ❌ No            |                                               |
 | Nested Structures   | ❌ No            |                                               |
 | Enums               | ❌ No            |                                               |
 | Browser Support     | ❌ No            | Currently, there is no support for browsers.  |
+| Bitfields           | ✅ Yes           |                                               |
 | C Structure Parsing | ✅ Yes           |                                               |
 | Binary Data Creation| ✅ Yes           |                                               |
 | Endianness Setting  | ✅ Yes           | Via auxiliary comments within the structure.  |

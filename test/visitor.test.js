@@ -95,7 +95,7 @@ test('visitor', (t) => {
         {
           meta: {},
           type: 'uint8_t',
-          vars: [{ d: [], name: 'version', bits: 4 }, { d: [], name: 'headerLength', bits: 4 }]
+          vars: [{ d: [], name: 'version', bits: 4 }, { d: [], name: 'headerLength', bits: 4 }, { bits: 3, d: [], name: 'something' }]
         },
         {
           meta: {},

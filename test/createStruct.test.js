@@ -109,6 +109,11 @@ test('createMany with bitfields', async (t) => {
   e.version = 0x06;
   e.headerLength = 0x0a;
   e.typeOfService = 0xcc;
+  e.something = 0x11;
 
-  console.log(e.buffer);
+  assert.equal(Buffer.compare(e.buffer, Buffer.from([0xa6, 0x01, 0xcc])), 0);
+  assert.equal(e.version, 0x06);
+  assert.equal(e.headerLength, 0x0a);
+  assert.equal(e.typeOfService, 0xcc);
+  assert.equal(e.something, 0x01);
 });

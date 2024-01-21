@@ -19,3 +19,10 @@ export const forSize = (size, val, floating = false) => {
   }
   throw new Error(`Invalid value for setting: ${val}`);
 };
+
+export const createMask = (size, offset, floating, length) => {
+  if (length == 64 && !floating) {
+    return [((1n << BigInt(size)) - 1n), BigInt(offset)];
+  }
+  return [((1 << size) - 1), offset];
+};

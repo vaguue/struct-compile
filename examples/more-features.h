@@ -21,7 +21,8 @@ struct Example3 {
 
 struct Example4 {
   uint8_t version:4,
-          headerLength:4;
+          headerLength:4,
+          something:3;
 
   uint8_t typeOfService;
 } __attribute__((packed));

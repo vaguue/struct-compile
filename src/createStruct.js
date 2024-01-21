@@ -1,5 +1,5 @@
 import { cDataTypes } from './dataTypes.js';
-import { maybeNumber, forSize } from './number.js';
+import { maybeNumber, forSize, createMask } from './number.js';
 import { trimWithEllipsis, toString } from './strings.js';
 import { multiDimGet, multiDimSet } from './array.js';
 import { SingleStructReader, StructReader } from './reader.js';
@@ -92,7 +92,16 @@ function proxyFromParams({ getter, setter, buffer, d: _d, length, floating, Buff
   });
 }
 
-function createField(StructProto, offset, { signed, length: baseLength, name, meta, customKey = null, floating, d }, defaultEndianness) {
+function createField(StructProto, offset, prop, defaultEndianness) {
+  const { 
+    signed, 
+    length: baseLength, 
+    name, 
+    meta, 
+    customKey = null, 
+    floating, 
+    d,
+  } = prop;
   if (baseLength == 0) return 0;
 
   const endianness = endiannessFromMeta(defaultEndianness, meta);
@@ -134,6 +143,23 @@ function createField(StructProto, offset, { signed, length: baseLength, name, me
   return length;
 }
 
+function createBitField(StructProto, offset, storageName, prop) {
+  const { name, bits, floating, length } = prop;
+  const [mask, checkedOffset] = createMask(bits, offset, floating, length);
+  Object.defineProperty(StructProto, name, {
+    get() {
+      return (this[storageName] & (mask << checkedOffset)) >> checkedOffset;
+    },
+    set(val) {
+      this[storageName] = (this[storageName] & (~(mask << checkedOffset))) | ((val & mask) << checkedOffset);
+    }
+  });
+}
+
+function bitFieldStorageName(count) {
+  return `_bitfield${count}`;
+}
+
 function getPropertyData(arch, { type, meta, vars, comment }) {
   let length, signed, customKey, floating = false;
   if (type.includes('*')) {
@@ -149,7 +175,7 @@ function getPropertyData(arch, { type, meta, vars, comment }) {
 
   return vars.map(v => {
     const { name, d, bits } = v;
-    const res = { name, meta, signed, length, floating, customKey, d, comment, bits };
+    const res = { name, meta, signed, length, floating, customKey, d, comment, bits, type };
     d.forEach(k => {
       if (k == 0) {
         res.length = 0;
@@ -282,30 +308,57 @@ export function create({ name, attributes, members, meta, comment }, arch, Buffe
     Struct.comments.main = comment;
   }
 
+  const props = [];
+  let prev = null;
+  let bfCount = 0;
+  let bitsOffset = 0;
+
   members.forEach((member) => {
     const propData = getPropertyData(arch, member);
     for (const prop of propData) {
-      if (prop.bits) {
-        console.log(prop);
-      }
       const { name, comment } = prop;
       if (comment) {
         Struct.comments[name] = comment;
       }
 
-      if (!packed) {
-        offset = alignOffset(offset, prop.length / 8);
+      if (prop.bits > 0) {
+        if (!(
+          prev?.bits > 0 && 
+          prev?.type == prop.type &&
+          (prop.length - bitsOffset) >= prop.bits
+        )) {
+          bfCount++;
+          bitsOffset = 0;
+          props.push({
+            ...prop,
+            name: bitFieldStorageName(bfCount),
+          });
+        } 
+
+        createBitField(Struct.prototype, bitsOffset, bitFieldStorageName(bfCount), prop);
+        bitsOffset += prop.bits;
       }
-      if (!skipAlign) {
-        aligned = Math.max(aligned, prop.length / 8);
+      else {
+        props.push(prop);
       }
-      offset += createField(Struct.prototype, offset, prop, endianness) / 8;
-      if (Struct.config.fields[prop.name] !== undefined) {
-        throw new Error(`Duplicate member names: ${prop.name}`);
-      }
-      Struct.config.fields[prop.name] = prop;
+
+      prev = prop;
     }
   });
+
+  for (const prop of props) {
+    if (!packed) {
+      offset = alignOffset(offset, prop.length / 8);
+    }
+    if (!skipAlign) {
+      aligned = Math.max(aligned, prop.length / 8);
+    }
+    offset += createField(Struct.prototype, offset, prop, endianness) / 8;
+    if (Struct.config.fields[prop.name] !== undefined) {
+      throw new Error(`Duplicate member names: ${prop.name}`);
+    }
+    Struct.config.fields[prop.name] = prop;
+  }
 
   const length = skipAlign ? offset : alignOffset(offset, aligned);
   Object.defineProperty(Struct.prototype, 'length', { value: length });
