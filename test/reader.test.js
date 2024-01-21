@@ -25,36 +25,13 @@ const getPromise = () => {
 };
 
 test('SingleStructReader', async (t) => {
-  await t.test('Basic usage', (t) => {
-    const { p, resolve, reject } = getPromise();
-    const reader = new SingleStructReader({ Struct });
+  const { p, resolve, reject } = getPromise();
+  const reader = new SingleStructReader({ Struct });
 
-    reader.write(Buffer.from(Array.from({ length: 18 }, () => 0xAA)));
-    reader.write(Buffer.from(Array.from({ length: 5 }, () => 0xBB)));
+  reader.write(Buffer.from(Array.from({ length: 18 }, () => 0xAA)));
+  reader.write(Buffer.from(Array.from({ length: 5 }, () => 0xBB)));
 
-    reader.on('finish', () => {
-      assert.equal(Buffer.compare(reader.remaining, Buffer.from([0xBB, 0xBB, 0xBB])), 0);
-      resolve();
-    });
-
-    return p;
-  });
-
-  await t.test('Trigger error', (t) => {
-    const { p, resolve, reject } = getPromise();
-    const reader = new SingleStructReader({ Struct });
-
-    reader.write(Buffer.from(Array.from({ length: 18 }, () => 0xAA)));
-    reader.write(Buffer.from(Array.from({ length: 5 }, () => 0xBB)));
-    reader.write(Buffer.from(Array.from({ length: 5 }, () => 0xDD)));
-
-    reader.on('error', (err) => {
-      assert.equal(err.code, 'ERR_STREAM_WRITE_AFTER_END');
-      resolve();
-    });
-
-    return p;
-  });
+  assert.equal(Buffer.compare(reader.remaining, Buffer.from([0xBB, 0xBB, 0xBB])), 0);
 });
 
 test('StructReader', async (t) => {

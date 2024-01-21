@@ -3,12 +3,12 @@ export const maybeNumber = val => {
   return Number.isNaN(tmp) ? val : tmp;
 };
 
-export const forSize = (size, val) => {
+export const forSize = (size, val, floating = false) => {
+  if (size > 32 && !floating) {
+    return BigInt(val);
+  }
   if (typeof val == 'number' || typeof val == 'bigint') {
     return val;
-  }
-  if (size > 32) {
-    return BigInt(val);
   }
   const mbNum = maybeNumber(val);
   if (typeof mbNum == 'number') {

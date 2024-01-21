@@ -35,7 +35,7 @@ function accessorFromParams({ endianness, signed, length, customKey, action }) {
   return `${action}${length == 64 ? '' : (signed ? '' : 'U')}${key}${customKey ? '' : length}${length > 8 ? endianness : ''}`;
 };
 
-function proxyFromParams({ getter, setter, buffer, d: _d, length, BufferImpl }) {
+function proxyFromParams({ getter, setter, buffer, d: _d, length, floating, BufferImpl }) {
   const k = _d[0];
   const d = _d.slice(1);
   const chunkSize = length / k / 8;
@@ -50,7 +50,7 @@ function proxyFromParams({ getter, setter, buffer, d: _d, length, BufferImpl }) 
           return target[getter](prop * chunkSize);
         }
         else {
-          return proxyFromParams({ getter, setter, buffer: buffer.subarray(prop * chunkSize, (prop + 1) * chunkSize), d, length: chunkSize * 8, BufferImpl });
+          return proxyFromParams({ getter, setter, buffer: buffer.subarray(prop * chunkSize, (prop + 1) * chunkSize), d, length: chunkSize * 8, floating, BufferImpl });
         }
       }
       else if (typeof target[prop] == 'function') {
@@ -69,7 +69,7 @@ function proxyFromParams({ getter, setter, buffer, d: _d, length, BufferImpl }) 
           throw new Error(`Out of bounds value, expected index to be 0 <= index < ${k}`);
         }
         if (d.length == 0) {
-          target[setter](forSize(chunkSize * 8, val), prop * chunkSize);
+          target[setter](forSize(chunkSize * 8, val, floating), prop * chunkSize);
         }
         else {
           if (val instanceof BufferImpl) {
@@ -92,7 +92,7 @@ function proxyFromParams({ getter, setter, buffer, d: _d, length, BufferImpl }) 
   });
 }
 
-function createField(StructProto, offset, { signed, length: baseLength, name, meta, customKey = null, d }, defaultEndianness) {
+function createField(StructProto, offset, { signed, length: baseLength, name, meta, customKey = null, floating, d }, defaultEndianness) {
   if (baseLength == 0) return 0;
 
   const endianness = endiannessFromMeta(defaultEndianness, meta);
@@ -111,14 +111,14 @@ function createField(StructProto, offset, { signed, length: baseLength, name, me
         return this._buf[getter](offset);
       },
       set(val) {
-        this._buf[setter](forSize(length, val), offset);
+        this._buf[setter](forSize(length, val, floating), offset);
       },
     });
   }
   else {
     Object.defineProperty(StructProto, name, {
       get() {
-        return proxyFromParams({ getter, setter, buffer: this._buf.subarray(offset, offset + length), d, length, BufferImpl: this.BufferImpl });
+        return proxyFromParams({ getter, setter, buffer: this._buf.subarray(offset, offset + length / 8), d, length, floating, BufferImpl: this.BufferImpl });
       },
       set(val) {
         if (val instanceof this.BufferImpl) {
@@ -135,13 +135,13 @@ function createField(StructProto, offset, { signed, length: baseLength, name, me
 }
 
 function getPropertyData(arch, { type, meta, vars, comment }) {
-  let length, signed, customKey;
+  let length, signed, customKey, floating = false;
   if (type.includes('*')) {
     length = arch.pointerSize * 8;
     signed = false;
   }
   else {
-    ({ signed, length, customKey } = cDataTypes[type]);
+    ({ signed, length, customKey, floating } = cDataTypes[type]);
     if (typeof length == 'function') {
       length = length(arch);
     }
@@ -149,7 +149,7 @@ function getPropertyData(arch, { type, meta, vars, comment }) {
 
   return vars.map(v => {
     const { name, d } = v;
-    const res = { name, meta, signed, length, customKey, d, comment };
+    const res = { name, meta, signed, length, floating, customKey, d, comment };
     d.forEach(k => {
       if (k == 0) {
         res.length = 0;

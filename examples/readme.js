@@ -1,4 +1,4 @@
-import { compile } from 'struct-compile';
+import { compile } from '#src/index';
 
 // also available for commonJS
 // const { compile } = require('struct-compile');
@@ -27,3 +27,16 @@ obj.dbl = 1.1;
 
 console.log('PDU size: ', obj.length);
 console.log('PDU buffer example: ', obj.buffer);
+
+const parsed = new PDU(
+  Buffer.from([0x73, 0x65, 0x76, 0x61,
+               0x00, 0x00, 0x00, 0x00,
+               0x00, 0x00, 0x00, 0x00,
+               0x00, 0x00, 0x00, 0x00,
+               0x3f, 0xf1, 0x99, 0x99,
+               0x99, 0x99, 0x99, 0x9a,
+               0x00, 0x00, 0x00, 0x00])
+);
+
+console.log(parsed.name.toString());
+console.log(parsed.dbl);

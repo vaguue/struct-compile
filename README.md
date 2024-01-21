@@ -28,12 +28,15 @@ import { compile } from 'struct-compile';
 // also available for commonJS
 // const { compile } = require('struct-compile');
 
-const { Example, PDU } = compile(`
-  struct Example {
+const { Data, PDU } = compile(`
+  struct Data {
     uint8_t c;
-  };
+    //@BE this value will be big-endian because of this comment
+    int v;
+    unsigned long da;
+  } __attribute__((__packed__, aligned(4)));
 
-  //@NE Network-endianness for all members of this struct
+  //@NE Network-endiannes for all members of this struct
   struct __attribute__((__packed__)) PDU {
     //Some useful comment
     char name /*in-between comment*/ [16];
@@ -42,13 +45,26 @@ const { Example, PDU } = compile(`
   };
 `);
 
-const pdu = new PDU();
+const obj = new PDU();
 
-pdu.name = 'seva';
-pdu.dbl = 1.1;
+obj.name = 'seva';
+obj.dbl = 1.1;
 
-console.log('PDU size:', pdu.length);
-console.log('PDU buffer example:', pdu.buffer);
+console.log('PDU size: ', obj.length);
+console.log('PDU buffer example: ', obj.buffer);
+
+const parsed = new PDU(
+  Buffer.from([0x73, 0x65, 0x76, 0x61,
+               0x00, 0x00, 0x00, 0x00,
+               0x00, 0x00, 0x00, 0x00,
+               0x00, 0x00, 0x00, 0x00,
+               0x3f, 0xf1, 0x99, 0x99,
+               0x99, 0x99, 0x99, 0x9a,
+               0x00, 0x00, 0x00, 0x00])
+);
+
+console.log(parsed.name.toString());
+console.log(parsed.dbl);
 ```
 
 The syntax for creating structures takes into account C rules for aligning objects within a structure, and auxiliary comments help to automatically set the endianness of the field. Learn more about alignment [here](https://learn.microsoft.com/en-us/cpp/c-language/padding-and-alignment-of-structure-members) and [here](https://gcc.gnu.org/onlinedocs/gcc-4.1.2/gcc/Type-Attributes.html).

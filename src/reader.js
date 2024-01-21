@@ -1,9 +1,8 @@
-import { Writable, Transform } from 'node:stream';
+import { Transform } from 'node:stream';
 
-export class SingleStructReader extends Writable {
+export class SingleStructReader {
   constructor(options) {
-    const { Struct, useSlice = false, toObject = false, selfEnd = true, ...other } = options;
-    super(other);
+    const { Struct, useSlice = false, toObject = false, selfEnd = true } = options;
 
     this.Struct = Struct;
     this.useSlice = useSlice;
@@ -13,7 +12,7 @@ export class SingleStructReader extends Writable {
     this.reset();
   }
 
-  _write(chunk, encoding, callback) {
+  write(chunk) {
     this.bufs.push(chunk);
     this.currentSize += chunk.length;
     
@@ -28,19 +27,14 @@ export class SingleStructReader extends Writable {
       if (this.currentSize > this.size) {
         this.remaining = this.useSlice ? this.buf.slice(this.size) : this.buf.subarray(this.size);
       } 
-
-      if (this.selfEnd) {
-        this.end();
-      }
     }
-
-    callback();
   }
 
   reset() {
     this.currentSize = 0;
     this.bufs = [];
     this.finished = false;
+    this.remaining = null;
   }
 }
 
@@ -55,7 +49,6 @@ export class StructReader extends Transform {
       Struct, 
       useSlice, 
       toObject,
-      selfEnd: false,
     });
   }
 

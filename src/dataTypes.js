@@ -25,9 +25,10 @@ export const cDataTypes = {
   'long long': { signed: true, length: 64 },
   'unsigned long long': { signed: false, length: 64 },
   'bool': { signed: false, length: 1 },
-  'float': { signed: true, length: 32, customKey: 'Float' },
-  'double': { signed: true, length: 64, customKey: 'Double' },
+  'float': { signed: true, length: 32, floating: true, customKey: 'Float' },
+  'double': { signed: true, length: 64, floating: true, customKey: 'Double' },
   'long double': { 
+    floating: true,
     signed: true, 
     //length: (arch) => arch.bits == 64 ? 128 : 96,
     length: (arch) => {
