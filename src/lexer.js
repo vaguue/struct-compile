@@ -17,6 +17,7 @@ tokens.MultiLineComment = addToken({ name: 'MultiLineComment', pattern: /\/\*.*?
 tokens.Const = addToken({ name: 'Const', pattern: /const/, group: Lexer.SKIPPED });
 tokens.Pointer = addToken({ name: 'Pointer', pattern: /\*/ });
 tokens.Semicolon = addToken({ name: 'Semicolon', pattern: /;/ });
+tokens.Colon = addToken({ name: 'Colon', pattern: /:/ });
 tokens.OneLineComment = addToken({ name: 'OneLineComment', pattern: /\/\/.*?\n/ });
 tokens.RoundBracketOpen = addToken({ name: 'RoundBracketOpen', pattern: /\(/ });
 tokens.RoundBracketClose = addToken({ name: 'RoundBracketClose', pattern: /\)/ });

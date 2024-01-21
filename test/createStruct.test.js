@@ -101,3 +101,14 @@ test('createMany with more array access', async (t) => {
     assert.deepEqual(e.toObject().m, testArray);
   });
 });
+
+test('createMany with bitfields', async (t) => {
+  const { Example4 } = createMany(traversedMoreFeatures, { pointerSize: 8, bits: 64, endianness: os.endianness() }, Buffer);
+
+  const e = new Example4;
+  e.version = 0x06;
+  e.headerLength = 0x0a;
+  e.typeOfService = 0xcc;
+
+  console.log(e.buffer);
+});

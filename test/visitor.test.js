@@ -88,6 +88,23 @@ test('visitor', (t) => {
       ],
       meta: {},
       name: 'Example3'
+    },
+    {
+      attributes: {},
+      members: [
+        {
+          meta: {},
+          type: 'uint8_t',
+          vars: [{ d: [], name: 'version', bits: 4 }, { d: [], name: 'headerLength', bits: 4 }]
+        },
+        {
+          meta: {},
+          type: 'uint8_t',
+          vars: [{ d: [], name: 'typeOfService' }]
+        }
+      ],
+      meta: {},
+      name: 'Example4'
     }
   ]);
 

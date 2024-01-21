@@ -18,3 +18,10 @@ struct Example3 {
   uint8_t c;
   double m[16][16];
 };
+
+struct Example4 {
+  uint8_t version:4,
+          headerLength:4;
+
+  uint8_t typeOfService;
+} __attribute__((packed));

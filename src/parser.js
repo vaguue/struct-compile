@@ -64,8 +64,22 @@ export class StructParser extends CstParser {
     const $ = this;
     $.RULE('memberName', () => {
       $.CONSUME(tokens.Identifier);
-      $.MANY(() => {
-        $.SUBRULE($.squareBracketExpression);
+      $.OPTION1(() => {
+        $.OR([
+          { 
+            ALT: () => {
+              $.CONSUME(tokens.Colon);
+              $.CONSUME(tokens.Num);
+            },
+          },
+          { 
+            ALT: () => {
+              $.MANY(() => {
+                $.SUBRULE($.squareBracketExpression);
+              });
+            },
+          },
+        ])
       });
     });
   }

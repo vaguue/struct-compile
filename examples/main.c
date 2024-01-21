@@ -53,6 +53,12 @@ int main() {
 
   puts("\n============\n");
 
+  struct BitFields bf;
+
+  bf.c1 = 0x11;
+
+  puts("\n============\n");
+
   struct Inspect5 obj = { 0 };
   printf("v: %lu %lu\n", (void*)&obj.v - (void*)&obj, sizeof(obj.v));
   printf("c1: %lu %lu\n", (void*)&obj.c1 - (void*)&obj, sizeof(obj.c1));

@@ -148,8 +148,8 @@ function getPropertyData(arch, { type, meta, vars, comment }) {
   }
 
   return vars.map(v => {
-    const { name, d } = v;
-    const res = { name, meta, signed, length, floating, customKey, d, comment };
+    const { name, d, bits } = v;
+    const res = { name, meta, signed, length, floating, customKey, d, comment, bits };
     d.forEach(k => {
       if (k == 0) {
         res.length = 0;
@@ -285,6 +285,9 @@ export function create({ name, attributes, members, meta, comment }, arch, Buffe
   members.forEach((member) => {
     const propData = getPropertyData(arch, member);
     for (const prop of propData) {
+      if (prop.bits) {
+        console.log(prop);
+      }
       const { name, comment } = prop;
       if (comment) {
         Struct.comments[name] = comment;

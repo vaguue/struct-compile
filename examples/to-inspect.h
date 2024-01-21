@@ -70,6 +70,7 @@ struct BitFields {
    c1: 1,
    c2: 2,
    c3: 3,
+   x,
    c4: 4,
    c5: 5,
    c6: 6,

@@ -75,52 +75,59 @@ export class StructVisitor extends BaseCstVisitor {
     const name = ctx.Identifier[0].image;
     const d = Array.from({ length: ctx.squareBracketExpression?.length ?? 0 }, 
       (_, i) => this.visit(ctx.squareBracketExpression[i], { forMember: true })?.value);
-    
-    return {
+
+    const res = {
       name,
       d,
     };
+
+    if (ctx.Colon) {
+      const { Num } = ctx;
+      res.bits = parseInt(Num[0].image);
+    }
+    
+    return res;
   }
 
   attributes(ctx) {
     const tokens = this.visit(ctx.bracketExpression, { isAttr: true });
-    const result = {};
+    const res = {};
     for (let i = 0; i < tokens.length; ++i) {
       if (tokens[i] == '__packed__') {
-        result.packed = true;
+        res.packed = true;
       }
       if (tokens[i] == 'aligned' || tokens[i] == '__aligned__') {
         let num = 0;
         if (i < tokens.length - 1 && !Number.isNaN(num = parseInt(tokens[i + 1]))) {
-          result.aligned = num;
+          res.aligned = num;
         }
         else {
-          result.aligned = true;
+          res.aligned = true;
         }
       }
     }
-    return result;
+    return res;
   }
 
   bracketExpression(ctx, params = {}) {
     if (params.isAttr) {
       const toLift = !params.isChild;
       params.isChild = true;
-      let result = [];
+      let res = [];
       for (const key of Object.keys(ctx)) {
         if (key == 'RoundBracketOpen' || key == 'RoundBracketClose') continue;
         if (isCapital(key)) {
-          result.push(...ctx[key].map(e => ({ value: e, type: key, offset: e.startOffset })));
+          res.push(...ctx[key].map(e => ({ value: e, type: key, offset: e.startOffset })));
         }
         else {
-          result.push(...Array.from({ length: ctx[key].length }, (_, i) => this.visit(ctx[key][i], params)));
+          res.push(...Array.from({ length: ctx[key].length }, (_, i) => this.visit(ctx[key][i], params)));
         }
       }
-      result = result.flat().sort((a, b) => a.offset - b.offset);
+      res = res.flat().sort((a, b) => a.offset - b.offset);
       if (toLift) {
-        result = result.map(e => e.value.image);
+        res = res.map(e => e.value.image);
       }
-      return result;
+      return res;
     }
     else {
       throw new Error('Unable to parse');
