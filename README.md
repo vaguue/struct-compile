@@ -45,6 +45,7 @@ const { Data, PDU } = compile(`
   };
 `);
 
+// craeting objects
 const obj = new PDU();
 
 obj.name = 'seva';
@@ -53,6 +54,7 @@ obj.dbl = 1.1;
 console.log('PDU size: ', obj.length);
 console.log('PDU buffer example: ', obj.buffer);
 
+// parsing raw binary data
 const parsed = new PDU(
   Buffer.from([0x73, 0x65, 0x76, 0x61,
                0x00, 0x00, 0x00, 0x00,
