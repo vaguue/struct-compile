@@ -45,7 +45,7 @@ const { Data, PDU } = compile(`
   };
 `);
 
-// craeting objects
+// creating objects
 const obj = new PDU();
 
 obj.name = 'seva';
