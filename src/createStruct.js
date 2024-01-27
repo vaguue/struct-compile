@@ -69,7 +69,7 @@ function proxyFromParams({ getter, setter, buffer, d: _d, length, floating, Buff
           throw new Error(`Out of bounds value, expected index to be 0 <= index < ${k}`);
         }
         if (d.length == 0) {
-          target[setter](forSize(chunkSize * 8, val, floating), prop * chunkSize);
+          target[setter](val instanceof BufferImpl ? val[getter]() : forSize(chunkSize * 8, val, floating), prop * chunkSize);
         }
         else {
           if (val instanceof BufferImpl) {
@@ -93,15 +93,16 @@ function proxyFromParams({ getter, setter, buffer, d: _d, length, floating, Buff
 }
 
 function createField(StructProto, offset, prop, defaultEndianness) {
-  const { 
-    signed, 
-    length: baseLength, 
-    name, 
-    meta, 
-    customKey = null, 
-    floating, 
+  const {
+    signed,
+    length: baseLength,
+    name,
+    meta,
+    customKey = null,
+    floating,
     d,
   } = prop;
+
   if (baseLength == 0) return 0;
 
   const endianness = endiannessFromMeta(defaultEndianness, meta);
@@ -120,7 +121,7 @@ function createField(StructProto, offset, prop, defaultEndianness) {
         return this._buf[getter](offset);
       },
       set(val) {
-        this._buf[setter](forSize(length, val, floating), offset);
+        this._buf[setter](val instanceof this.BufferImpl ? val[getter]() : forSize(length, val, floating), offset);
       },
     });
   }
@@ -187,7 +188,7 @@ function getPropertyData(arch, { type, meta, vars, comment }) {
 }
 
 export function alignOffset(offset, length) {
-  if (offset == 0) return offset;
+  if (offset == 0 || length == 0) return offset;
   const extra = (length - 1) - (offset - 1) % (length);
   return offset + extra;
 }
@@ -214,7 +215,7 @@ export function create({ name, attributes, members, meta, comment }, arch, Buffe
       }
 
       Object.entries(Struct.config.fields).forEach(([key, val]) => {
-        if (arg.hasOwnProperty(key)) {
+        if (arg[key] !== undefined) {
           const argValue = arg[key];
           if (val.d.length > 0 && Array.isArray(argValue)) {
             multiDimSet(this[key], val.d, argValue);
@@ -252,7 +253,7 @@ export function create({ name, attributes, members, meta, comment }, arch, Buffe
   Object.defineProperty(Struct, 'name', { value: name });
   Object.defineProperty(Struct, 'config', { value: { name, attributes, members, meta, fields: {} } });
   Object.defineProperty(Struct.prototype, 'BufferImpl', { value: BufferImpl });
-  Object.defineProperty(Struct.prototype, 'buffer', { 
+  Object.defineProperty(Struct.prototype, 'buffer', {
     get() {
       return this._buf;
     },
@@ -270,7 +271,7 @@ export function create({ name, attributes, members, meta, comment }, arch, Buffe
   Struct.prototype.toObject = function() {
     const res = {};
     for (const [key, val] of Object.entries(Struct.config.fields)) {
-      if (val.d.length > 0) {
+      if (val.d.length > 0 && val.d?.[0] != 0) {
         res[key] = multiDimGet(this[key], val.d);
       }
       else {
@@ -323,7 +324,7 @@ export function create({ name, attributes, members, meta, comment }, arch, Buffe
 
       if (prop.bits > 0) {
         if (!(
-          prev?.bits > 0 && 
+          prev?.bits > 0 &&
           prev?.type == prop.type &&
           (prop.length - bitsOffset) >= prop.bits
         )) {
@@ -333,7 +334,7 @@ export function create({ name, attributes, members, meta, comment }, arch, Buffe
             ...prop,
             name: bitFieldStorageName(bfCount),
           });
-        } 
+        }
 
         createBitField(Struct.prototype, bitsOffset, bitFieldStorageName(bfCount), prop);
         bitsOffset += prop.bits;
@@ -342,6 +343,10 @@ export function create({ name, attributes, members, meta, comment }, arch, Buffe
         props.push(prop);
       }
 
+      if (Struct.config.fields[prop.name] !== undefined) {
+        throw new Error(`Duplicate member names: ${prop.name}`);
+      }
+      Struct.config.fields[prop.name] = prop;
       prev = prop;
     }
   });
@@ -353,17 +358,19 @@ export function create({ name, attributes, members, meta, comment }, arch, Buffe
     if (!skipAlign) {
       aligned = Math.max(aligned, prop.length / 8);
     }
+
     offset += createField(Struct.prototype, offset, prop, endianness) / 8;
-    if (Struct.config.fields[prop.name] !== undefined) {
-      throw new Error(`Duplicate member names: ${prop.name}`);
-    }
-    Struct.config.fields[prop.name] = prop;
   }
 
   const length = skipAlign ? offset : alignOffset(offset, aligned);
-  Object.defineProperty(Struct.prototype, 'length', { value: length });
-  Struct.config.length = length;
 
+  Object.defineProperty(Struct.prototype, 'length', {
+    value: length,
+    writable: true,
+    configurable: true,
+  });
+
+  Struct.config.length = length;
 
   return Struct;
 }
