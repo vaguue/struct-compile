@@ -29,12 +29,12 @@ import { compile } from 'struct-compile';
 // const { compile } = require('struct-compile');
 
 const { Data, PDU } = compile(`
+  //simple example
   struct Data {
     uint8_t c;
-    //@BE this value will be big-endian because of this comment
     int v;
     unsigned long da;
-  } __attribute__((__packed__, aligned(4)));
+  };
 
   //@NE Network-endiannes for all members of this struct
   struct __attribute__((__packed__)) PDU {
