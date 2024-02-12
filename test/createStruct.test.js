@@ -2,10 +2,19 @@ import os from 'node:os';
 import { strict as assert } from 'node:assert';
 import test from 'node:test';
 
-import { createMany } from '#src/createStruct';
+import { createMany } from '#src/createStruct/index';
 
 import traversedBasic from './data/traversed-basic.json' assert { type: 'json' };
 import traversedMoreFeatures from './data/traversed-more-features.json' assert { type: 'json' };
+
+test('error handling', async (t) => {
+  const { Basic } = createMany(traversedBasic, { pointerSize: 8, bits: 64, endianness: os.endianness() }, Buffer);
+  assert.throws(() => new Basic(Buffer.alloc(0)), { message: /Invalid buffer length/ });
+
+  const basic = new Basic();
+  assert.throws(() => basic.buffer = Buffer.alloc(0), { message: /Invalid buffer length/ });
+  assert.throws(() => basic.buffer = 'data', { message: /Invalid buffer type/ });
+});
 
 test('createMany basic', async (t) => {
   const { Basic } = createMany(traversedBasic, { pointerSize: 8, bits: 64, endianness: os.endianness() }, Buffer);
@@ -24,6 +33,19 @@ test('createMany basic', async (t) => {
     assert.equal(basic.c, 0x42);
     assert.equal(Buffer.compare(basic.buffer, Buffer.from([0x42])), 0);
   });
+});
+
+test('merge', async (t) => {
+  const { Example1 } = createMany(traversedMoreFeatures, { pointerSize: 8, bits: 64, endianness: os.endianness() }, Buffer);
+
+  const e1 = new Example1();
+
+  e1.merge({ c: 'a', v: 4, da: 0xaaaabbbbaaaa });
+
+  assert.deepEqual(e1.toObject(), { c: 97, v: 4, da: 0xaaaabbbbaaaan });
+
+  assert.equal(Buffer.compare(e1.buffer, 
+    Buffer.from([0x61, 0x00, 0x00, 0x00, 0x04, 0xaa, 0xaa, 0xbb, 0xbb, 0xaa, 0xaa, 0x00, 0x00, 0x00, 0x00, 0x00])), 0);
 });
 
 test('createMany with more features', (t) => {

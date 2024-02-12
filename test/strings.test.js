@@ -1,7 +1,14 @@
 import { strict as assert } from 'node:assert';
 import test from 'node:test';
 
-import { isWhitespace, skipWhitespace, trim, isCapital, trimWithEllipsis } from '#src/strings';
+import { 
+  isWhitespace, 
+  skipWhitespace, 
+  trim, 
+  isCapital, 
+  trimWithEllipsis,
+  toString,
+} from '#src/strings';
 
 test('isWhitespace', (t) => {
   assert.ok(isWhitespace(' '));
@@ -22,6 +29,10 @@ test('trim', (t) => {
 test('isCapital', (t) => {
   assert.equal(isCapital('Kek'), true);
   assert.equal(isCapital('lol'), false);
+});
+
+test('toString', (t) => {
+  assert.equal(toString(123), '123');
 });
 
 test('trimWithEllipsis', (t) => {

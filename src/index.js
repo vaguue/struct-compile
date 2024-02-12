@@ -1,6 +1,6 @@
 import { parseInput } from './parser.js';
 import { traverseResult } from './visitor.js';
-import { createMany, create } from './createStruct.js';
+import { createMany, create } from './createStruct/index.js';
 import { currentArch } from './currentArch.js';
 
 export function compile(str, arch = currentArch, BufferImpl = Buffer) {
@@ -11,4 +11,4 @@ export function fromConfig(config, arch = currentArch, BufferImpl = Buffer) {
   return create(config, arch, BufferImpl);
 }
 
-export { alignOffset } from './createStruct.js';
+export { alignOffset } from './createStruct/index.js';
