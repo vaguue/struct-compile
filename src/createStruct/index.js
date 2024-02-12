@@ -66,7 +66,7 @@ export function create({ name, attributes, members, meta, comment }, arch, Buffe
       Object.entries(this.config.fields).forEach(([key, val]) => {
         if (arg[key] !== undefined) {
           const argValue = arg[key];
-          if (val.d.length > 0 && Array.isArray(argValue)) {
+          if (val.d?.length > 0 && Array.isArray(argValue)) {
             multiDimSet(this[key], val.d, argValue);
           }
           else {
@@ -120,7 +120,7 @@ export function create({ name, attributes, members, meta, comment }, arch, Buffe
   Struct.prototype.toObject = function() {
     const res = {};
     for (const [key, val] of Object.entries(this.config.fields)) {
-      if (val.d.length > 0 && val.d?.[0] != 0) {
+      if (val.d?.length > 0 && val.d?.[0] != 0) {
         res[key] = multiDimGet(this[key], val.d);
       }
       else {
