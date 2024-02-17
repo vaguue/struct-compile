@@ -4,13 +4,13 @@ import test from 'node:test';
 import { SingleStructReader, StructReader } from '#src/reader';
 
 class Struct {
-  static config = {
-    length: 20,
-  };
-
   constructor(buf) {
     this.buffer = buf;
   }
+};
+
+Struct.prototype.config = {
+  length: 20,
 };
 
 const getPromise = () => {

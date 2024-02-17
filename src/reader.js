@@ -8,7 +8,7 @@ export class SingleStructReader {
     this.useSlice = useSlice;
     this.toObject = toObject;
     this.selfEnd = selfEnd;
-    this.size = Struct.config.length;
+    this.size = Struct.prototype.config.length;
     this.reset();
   }
 
