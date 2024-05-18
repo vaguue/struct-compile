@@ -90,7 +90,7 @@ test('visitor', (t) => {
       name: 'Example3'
     },
     {
-      attributes: {},
+      attributes: { packed: true },
       members: [
         {
           meta: {},

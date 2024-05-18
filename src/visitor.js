@@ -93,7 +93,7 @@ export class StructVisitor extends BaseCstVisitor {
     const tokens = this.visit(ctx.bracketExpression, { isAttr: true });
     const res = {};
     for (let i = 0; i < tokens.length; ++i) {
-      if (tokens[i] == '__packed__') {
+      if (tokens[i] == 'packed' || tokens[i] == '__packed__') {
         res.packed = true;
       }
       if (tokens[i] == 'aligned' || tokens[i] == '__aligned__') {
