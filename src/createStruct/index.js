@@ -43,7 +43,7 @@ export function alignOffset(offset, length) {
 }
 
 export function create({ name, attributes, members, meta, comment }, arch, BufferImpl) {
-  function Struct(arg) {
+  function Struct(arg, opts = {}) {
     if (arg === undefined) {
       this._buf = BufferImpl.alloc(this.length);
     }
@@ -57,10 +57,10 @@ export function create({ name, attributes, members, meta, comment }, arch, Buffe
       const { _structCompileInternal = {} } = arg;
       const zeroed = _structCompileInternal.zeroed ?? true;
       if (zeroed) {
-        this._buf = BufferImpl.alloc(this.length);
+        this._buf = BufferImpl.alloc(opts.toAlloc ?? this.length);
       }
       else {
-        this._buf = BufferImpl.allocUnsafe(this.length);
+        this._buf = BufferImpl.allocUnsafe(opts.toAlloc ?? this.length);
       }
 
       Object.entries(this.config.fields).forEach(([key, val]) => {

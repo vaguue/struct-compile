@@ -6,6 +6,10 @@ export function proxyFromParams({ getter, setter, buffer, d: _d, length, floatin
   const chunkSize = length / k / 8;
   return new Proxy(buffer, {
     get(target, _prop, receiver) {
+      if (typeof _prop == 'symbol') {
+        return target[_prop];
+      }
+
       const prop = maybeNumber(_prop);
       if (typeof prop == 'number') {
         if (prop < 0 || prop >= k) {
@@ -36,6 +40,12 @@ export function proxyFromParams({ getter, setter, buffer, d: _d, length, floatin
       return target[prop];
     },
     set(target, _prop, val) {
+      if (typeof _prop == 'symbol') {
+        target[prop] = val;
+
+        return true;
+      }
+
       const prop = maybeNumber(_prop);
       if (typeof prop == 'number') {
         if (prop < 0 || prop >= k) {
