@@ -7,9 +7,14 @@ npm i struct-compile --save
 ```
 
 ## Overview
-*This project is used internaly by the [over-the-wire](https://github.com/vaguue/over-the-wire), I'm not sure if it has any use outside it's main purpose.*
 
-The goal of this project is to provide a convenient function to create a JavaScript class from a C structure, for further parsing or creating binary data.
+*This project is used internally by [over-the-wire](https://github.com/vaguue/over-the-wire). I'm not sure if it has any use outside its main purpose.*
+
+The goal of this project is to provide a convenient function for creating a JavaScript class from a C structure, allowing for easy parsing or construction of binary data.
+
+I chose to implement it myself instead of using an existing alternative because of the lazy reading feature: when the struct is initialized with a `Buffer` instance, it doesn't immediately read all the fields—only those that are accessed.
+
+This approach is especially useful for parsing network packets, where many fields are often unnecessary to read. I also believe it can slightly improve overall performance.
 
 ## System Requirements
 
