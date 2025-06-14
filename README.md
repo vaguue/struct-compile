@@ -9,7 +9,7 @@ npm i struct-compile --save
 ## Overview
 *This project is used internaly by the [over-the-wire](https://github.com/vaguue/over-the-wire), I'm not sure if it has any use outside it's main purpose.*
 
-This project provides a convenient function to create a JavaScript class from a C structure, for further parsing or creating binary data.
+The goal of this project is to provide a convenient function to create a JavaScript class from a C structure, for further parsing or creating binary data.
 
 ## System Requirements
 
