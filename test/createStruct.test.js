@@ -4,8 +4,8 @@ import test from 'node:test';
 
 import { createMany } from '#src/createStruct/index';
 
-import traversedBasic from './data/traversed-basic.json' assert { type: 'json' };
-import traversedMoreFeatures from './data/traversed-more-features.json' assert { type: 'json' };
+import traversedBasic from './data/traversed-basic.json' with { type: 'json' };
+import traversedMoreFeatures from './data/traversed-more-features.json' with { type: 'json' };
 
 test('error handling', async (t) => {
   const { Basic } = createMany(traversedBasic, { pointerSize: 8, bits: 64, endianness: os.endianness() }, Buffer);

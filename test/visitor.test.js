@@ -3,8 +3,8 @@ import test from 'node:test';
 
 import { traverseResult } from '#src/visitor';
 
-import parsedBasic from './data/parsed-basic.json' assert { type: 'json' };
-import parsedMoreFeatures from './data/parsed-more-features.json' assert { type: 'json' };
+import parsedBasic from './data/parsed-basic.json' with { type: 'json' };
+import parsedMoreFeatures from './data/parsed-more-features.json' with { type: 'json' };
 
 test('visitor', (t) => {
   const resultBasic = traverseResult(parsedBasic);
