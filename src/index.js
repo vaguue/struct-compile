@@ -1,6 +1,7 @@
 import { parseInput } from './parser.js';
 import { traverseResult } from './visitor.js';
 import { createMany, create } from './createStruct/index.js';
+import { createManyFast, createFast } from './createStruct/fast.js';
 import { currentArch } from './currentArch.js';
 
 export function compile(str, arch = currentArch, BufferImpl = Buffer) {
@@ -9,6 +10,14 @@ export function compile(str, arch = currentArch, BufferImpl = Buffer) {
 
 export function fromConfig(config, arch = currentArch, BufferImpl = Buffer) {
   return create(config, arch, BufferImpl);
+}
+
+export function compileFast(str, arch = currentArch) {
+  return createManyFast(traverseResult(parseInput(str).cstOutput), arch);
+}
+
+export function fastFromConfig(config, arch = currentArch) {
+  return createFast(config, arch);
 }
 
 export { alignOffset } from './createStruct/index.js';
