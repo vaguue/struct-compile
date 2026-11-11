@@ -3,6 +3,7 @@ import { multiDimGet, multiDimSet } from '#src/array';
 import { forSize } from '#src/number';
 import { SingleStructReader, StructReader } from '#src/reader';
 import { computeLayout } from './layout.js';
+import { endiannessFromMeta } from './endianness.js';
 import { generate } from './codegen.js';
 import { createArrayDescriptor, arrayGet, arraySet, arrayView } from './arrays.js';
 
@@ -10,14 +11,75 @@ export { alignOffset } from './layout.js';
 
 const HELPERS = [
   '$Buffer', '$short', '$range', '$cv', '$big', '$str', '$head',
-  '$array', '$arrayGet', '$arraySet', '$arrayView', '$multiDimSet',
+  '$array', '$arrayGet', '$arraySet', '$arrayView', '$structSet', '$multiDimSet',
   '$extras', '$extrasToObject', '$extrasMerge', '$extrasToString',
 ];
 
 const isBytes = BufferImpl => BufferImpl === Uint8Array || BufferImpl.prototype instanceof Uint8Array;
 
-export function create({ name, attributes, members, meta, comment }, arch, BufferImpl) {
-  const layout = computeLayout({ attributes, members, meta }, arch);
+/*
+ * Replaces references to named structs (`struct Inner x;`) with their
+ * definitions, so that a resolved definition is self-contained. `registry`
+ * maps the names declared so far to their resolved definitions.
+ */
+function resolve(def, registry) {
+  const members = def.members.map((member) => {
+    const nested = member.struct;
+    if (nested === undefined) {
+      return member;
+    }
+    if (nested.members === undefined) {
+      const found = registry.get(nested.name);
+      if (found === undefined) {
+        throw new Error(`Unknown type: ${member.type}`);
+      }
+      if (!!found.union != !!nested.union) {
+        throw new Error(`${nested.name} is declared as a ${found.union ? 'union' : 'struct'}, but used as ${member.type}`);
+      }
+      return { ...member, struct: found };
+    }
+    return { ...member, struct: resolve(nested, registry) };
+  });
+
+  const res = { ...def, members, meta: def.meta ?? {} };
+  if (def.name) {
+    registry.set(def.name, res);
+  }
+  return res;
+}
+
+/*
+ * One compilation: a set of definitions sharing the arch and the buffer
+ * implementation. A nested struct is compiled once per byte order it's
+ * used with, so `outer.inner instanceof Inner` holds whenever the
+ * enclosing struct doesn't change the default endianness.
+ */
+function createContext(arch, BufferImpl) {
+  const registry = new Map();
+  const cache = new Map();
+
+  const compileResolved = (def, inherited) => {
+    const endianness = endiannessFromMeta(inherited, def.meta);
+    let variants = cache.get(def);
+    if (variants === undefined) {
+      cache.set(def, variants = {});
+    }
+    return variants[endianness] ??= build(def, { ...arch, endianness }, BufferImpl, compileResolved);
+  };
+
+  return {
+    compile: def => compileResolved(resolve(def, registry), arch.endianness),
+  };
+}
+
+export function create(def, arch, BufferImpl) {
+  return createContext(arch, BufferImpl).compile(def);
+}
+
+function build(def, arch, BufferImpl, compileNested) {
+  const { attributes, members, meta, comment } = def;
+  const name = def.name ?? (def.union ? 'union' : 'struct');
+  const layout = computeLayout(def, arch, compileNested);
   const { size, props } = layout;
 
   /*
@@ -51,6 +113,18 @@ export function create({ name, attributes, members, meta, comment }, arch, Buffe
     $arrayGet: arrayGet,
     $arraySet: arraySet,
     $arrayView: arrayView,
+    $structSet(buf, pos, Inner, val) {
+      if (val === undefined || val === null) return;
+      if (val instanceof Inner) {
+        val = val._buf;
+      }
+      if (val instanceof BufferImpl) {
+        val.copy(buf, pos, 0, Math.min(val.length, Inner.size));
+      }
+      else {
+        new Inner(buf.subarray(pos, pos + Inner.size)).merge(val);
+      }
+    },
     $array: (spec, read, write) => createArrayDescriptor(spec, read, write, BufferImpl),
     $short(expected, got) {
       throw new Error(`Invalid buffer length: expected at least ${expected} bytes, got ${got} bytes`);
@@ -91,11 +165,13 @@ export function create({ name, attributes, members, meta, comment }, arch, Buffe
     },
   };
 
-  const source = generate(layout, { inline: isBytes(BufferImpl) });
-  const Struct = new Function(...HELPERS, `"use strict";\n${source}`)(...HELPERS.map(key => helpers[key]));
+  const { source, refs } = generate(layout, { inline: isBytes(BufferImpl) });
+  Object.assign(helpers, refs);
+  const params = [...HELPERS, ...Object.keys(refs)];
+  const Struct = new Function(...params, `"use strict";\n${source}`)(...params.map(key => helpers[key]));
 
   Object.defineProperty(Struct, 'name', { value: name });
-  Object.defineProperty(Struct.prototype, 'config', { value: { name, attributes, members, meta, fields, length: size } });
+  Object.defineProperty(Struct.prototype, 'config', { value: { ...def, name, fields, length: size } });
   Object.defineProperty(Struct.prototype, 'BufferImpl', { value: BufferImpl });
   Object.defineProperty(Struct.prototype, 'length', {
     value: size,
@@ -118,6 +194,7 @@ export function create({ name, attributes, members, meta, comment }, arch, Buffe
   });
 
   Struct.size = size;
+  Struct.align = layout.align;
 
   Struct.comments = layout.comments;
   if (comment) {
@@ -137,5 +214,10 @@ export function create({ name, attributes, members, meta, comment }, arch, Buffe
 
 export function createMany(structs, arch, BufferImpl) {
   if (!structs) return {};
-  return structs.reduce((res, e) => ({ ...res, [e.name]: create(e, arch, BufferImpl) }), {});
+  const context = createContext(arch, BufferImpl);
+  const res = {};
+  for (const def of structs) {
+    res[def.name] = context.compile(def);
+  }
+  return res;
 }

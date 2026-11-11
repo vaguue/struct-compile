@@ -17,7 +17,7 @@ The goal of this project is to generate efficient binary parsers and serializers
 - **Lazily**, as a view over a buffer: `new Struct(buffer)` reads nothing, each member is decoded when it's accessed and written in place when it's assigned. Good when a few fields of a header are inspected or patched.
 - **Eagerly**, through the static codecs: `Struct.decode(buffer, offset)` returns a plain object with every member decoded (no instance, no `subarray`), `Struct.encode(buffer, offset, values)` writes one. Good for tight parsing loops.
 
-Both work for every struct, including the ones with bit fields and arrays, and both agree with each other: `Struct.decode(buf, 0)` equals `new Struct(buf).toObject()`.
+Both work for every struct, including the ones with bit fields, arrays, nested structs and unions, and both agree with each other: `Struct.decode(buf, 0)` equals `new Struct(buf).toObject()`.
 
 ## System Requirements
 
@@ -116,7 +116,7 @@ const r = PacketHeader.decodeBE(out, 0);
 
 | Member                                   | Description                                                                 |
 |------------------------------------------|-----------------------------------------------------------------------------|
-| `Struct.size`                            | Size in bytes.                                                              |
+| `Struct.size` / `Struct.align`           | Size and alignment in bytes.                                                |
 | `Struct.decode(buffer, [offset])`        | Decodes all members; throws a `RangeError` if the struct doesn't fit.       |
 | `Struct.encode(buffer, offset, values)`  | Writes all members (padding bytes are left untouched).                      |
 | `decodeLE` / `decodeBE` / `encodeLE` / `encodeBE` | Same, forcing one byte order for every member.                     |
@@ -135,6 +135,64 @@ const r = PacketHeader.decodeBE(out, 0);
 
 `npm run perf` prints the numbers for your machine.
 
+### Nested structures and unions
+
+A member can be another struct or union: one declared earlier in the same `compile` call, or one defined inline. Arrays of them work as well.
+
+```javascript
+const { Line } = compile(`
+  struct Point {
+    uint16_t x;
+    uint16_t y;
+  };
+
+  struct Line {
+    // reference by name
+    struct Point from;
+    // array of structs
+    struct Point path[4];
+    // inline definition
+    struct { uint8_t r, g, b; } color;
+  };
+`);
+
+const line = Line.decode(buf, 0);
+// → { from: { x, y }, path: [{ x, y }, ...], color: { r, g, b } }
+
+const view = new Line(buf);
+view.from.x = 10;          // `view.from` is a Point over the same bytes
+view.path[2] = { y: 7 };   // objects are merged, buffers and instances are copied
+```
+
+- The eager paths (`decode`, `encode`, `toObject`) reach nested members at constant offsets. The lazy accessor creates a view of the nested struct on each access, so prefer `decode` (or keep the view in a variable) in hot loops.
+- A nested struct inherits the default byte order of the enclosing one unless it has its own `//@LE` / `//@BE` / `//@NE`. A comment on the member (`//@BE struct Point p;`) sets it for that member.
+- Nested structs keep their own packing and alignment, as in C.
+- A struct or union without a member name is anonymous: its members become members of the enclosing struct.
+
+Members of a `union` share the same bytes. Decoding returns every member; encoding writes only the members that are present in the values, in declaration order.
+
+```javascript
+const { ICMP } = compile(`
+  //@NE
+  struct __attribute__((packed)) ICMP {
+    uint8_t type;
+    uint8_t code;
+    uint16_t checksum;
+    union {
+      struct { uint16_t id; uint16_t sequence; } echo;
+      uint32_t gateway;
+    };
+  };
+`);
+
+ICMP.decode(buf, 0);
+// → { type, code, checksum, echo: { id, sequence }, gateway }
+
+ICMP.encode(out, 0, { type: 8, code: 0, checksum: 0, echo: { id: 1, sequence: 2 } });
+```
+
+As in C, a union is as large as its largest member, so the buffer has to hold that many bytes whichever member is actually in use.
+
 ### Custom buffer implementations
 
 `BufferImpl` defaults to `Buffer`. Any `Uint8Array` subclass providing the Node.js `Buffer` read/write methods gets the inlined reads; other implementations are driven through their `readXxx` / `writeXxx` methods only.
@@ -150,7 +208,8 @@ The input syntax is a *subset* of C; current grammar can be viewed [here](https:
 | Endianness setting   | ✅        | Via `//@LE` / `//@BE` / `//@NE` comments     |
 | Bit fields           | ✅        |                                              |
 | Arrays               | ✅        |                                              |
-| Nested structures    | ❌        |                                              |
+| Nested structures    | ✅        | By name or inline, arrays of structs         |
+| Unions               | ✅        | Named and anonymous                          |
 | Enums                | ❌        |                                              |
 | Browser support      | ❌        | Node.js `Buffer` API is required             |
 

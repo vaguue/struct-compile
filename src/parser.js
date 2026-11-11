@@ -13,6 +13,7 @@ export class StructParser extends CstParser {
 
     this.initAttributesDecl();
     this.initMemberName();
+    this.initNestedDecl();
     this.initMemberDecl();
     this.initStructDecl();
     this.initStructDecls();
@@ -84,20 +85,53 @@ export class StructParser extends CstParser {
     });
   }
 
+  // `struct Name`, `union Name` or an inline `struct [Name] { ... }` used as a member type
+  initNestedDecl() {
+    const $ = this;
+    $.RULE('nested', () => {
+      $.OR([
+        { ALT: () => $.CONSUME(tokens.Struct) },
+        { ALT: () => $.CONSUME(tokens.Union) },
+      ]);
+      $.OPTION1(() => {
+        $.SUBRULE1($.attributes);
+      });
+      $.OPTION2(() => {
+        $.CONSUME(tokens.Identifier);
+      });
+      $.OPTION3(() => {
+        $.CONSUME(tokens.BracesOpen);
+        $.MANY(() => {
+          $.SUBRULE($.member);
+        });
+        $.CONSUME(tokens.BracesClose);
+        $.OPTION4(() => {
+          $.SUBRULE2($.attributes);
+        });
+      });
+    });
+  }
+
   initMemberDecl() {
     const $ = this;
     $.RULE('member', () => {
       $.OPTION1(() => {
         $.CONSUME1(tokens.OneLineComment);
       });
-      $.CONSUME(tokens.TypeKeyword);
+      $.OR([
+        { ALT: () => $.CONSUME(tokens.TypeKeyword) },
+        { ALT: () => $.SUBRULE($.nested) },
+      ]);
       $.MANY1(() => {
         $.CONSUME(tokens.Pointer);
       });
-      $.SUBRULE1($.memberName);
-      $.MANY2(() => {
-        $.CONSUME(tokens.Comma);
-        $.SUBRULE2($.memberName);
+      // names are optional for anonymous struct / union members
+      $.OPTION2(() => {
+        $.SUBRULE1($.memberName);
+        $.MANY2(() => {
+          $.CONSUME(tokens.Comma);
+          $.SUBRULE2($.memberName);
+        });
       });
       $.CONSUME(tokens.Semicolon);
     });
@@ -117,7 +151,10 @@ export class StructParser extends CstParser {
       $.OPTION1(() => {
         $.CONSUME(tokens.OneLineComment);
       });
-      $.CONSUME(tokens.Struct);
+      $.OR([
+        { ALT: () => $.CONSUME(tokens.Struct) },
+        { ALT: () => $.CONSUME(tokens.Union) },
+      ]);
       $.OPTION2(() => {
         $.SUBRULE1($.attributes);
       });

@@ -29,12 +29,29 @@ export class StructVisitor extends BaseCstVisitor {
     const comment = ctx.OneLineComment?.[0]?.image ?? null;
     const meta = this._buildMeta(comment);
 
-    return this._buildComment({
-      name,
-      attributes,
-      members,
-      meta,
-    }, comment);
+    const res = { name, attributes, members, meta };
+    if (ctx.Union) {
+      res.union = true;
+    }
+
+    return this._buildComment(res, comment);
+  }
+
+  // A struct / union used as a member type. No `members` means a reference by name.
+  nested(ctx) {
+    const res = {
+      name: ctx.Identifier?.[0]?.image ?? null,
+      attributes: ctx.attributes ? this.visit(ctx.attributes) : null,
+      meta: {},
+    };
+    if (ctx.BracesOpen) {
+      res.members = Array.from({ length: ctx.member?.length ?? 0 }, (_, i) => this.visit(ctx.member[i]));
+    }
+    if (ctx.Union) {
+      res.union = true;
+    }
+
+    return res;
   }
 
   _buildComment(res, comment) {
@@ -57,18 +74,30 @@ export class StructVisitor extends BaseCstVisitor {
   member(ctx) {
     const comment = ctx.OneLineComment?.[0]?.image ?? null;
     const vars = Array.from({ length: ctx?.memberName?.length ?? 0 }, (_, i) => this.visit(ctx.memberName[i]));
-    let type = trim(ctx.TypeKeyword[0].image);
+    const nested = ctx.nested ? this.visit(ctx.nested) : null;
+    let type;
+    if (nested) {
+      type = nested.union ? 'union' : 'struct';
+      if (nested.name) {
+        type += ` ${nested.name}`;
+      }
+    }
+    else {
+      type = trim(ctx.TypeKeyword[0].image);
+    }
     if (ctx.Pointer) {
       type += ' ';
       type += ctx.Pointer.map(e => e.image).join('');
     }
     const meta = this._buildMeta(comment);
 
-    return this._buildComment({
-      type,
-      vars,
-      meta,
-    }, comment);
+    const res = { type, vars, meta };
+    // a pointer to a struct is just a pointer, the definition isn't needed
+    if (nested && !ctx.Pointer) {
+      res.struct = nested;
+    }
+
+    return this._buildComment(res, comment);
   }
 
   memberName(ctx) {

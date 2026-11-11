@@ -239,6 +239,109 @@
   },
   {
     "type": "Rule",
+    "name": "nested",
+    "orgText": "",
+    "definition": [
+      {
+        "type": "Alternation",
+        "idx": 0,
+        "definition": [
+          {
+            "type": "Alternative",
+            "definition": [
+              {
+                "type": "Terminal",
+                "name": "Struct",
+                "label": "Struct",
+                "idx": 0,
+                "pattern": "struct\\b"
+              }
+            ]
+          },
+          {
+            "type": "Alternative",
+            "definition": [
+              {
+                "type": "Terminal",
+                "name": "Union",
+                "label": "Union",
+                "idx": 0,
+                "pattern": "union\\b"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Option",
+        "idx": 1,
+        "definition": [
+          {
+            "type": "NonTerminal",
+            "name": "attributes",
+            "idx": 1
+          }
+        ]
+      },
+      {
+        "type": "Option",
+        "idx": 2,
+        "definition": [
+          {
+            "type": "Terminal",
+            "name": "Identifier",
+            "label": "Identifier",
+            "idx": 0,
+            "pattern": "[_a-zA-Z][\\w_]*"
+          }
+        ]
+      },
+      {
+        "type": "Option",
+        "idx": 3,
+        "definition": [
+          {
+            "type": "Terminal",
+            "name": "BracesOpen",
+            "label": "BracesOpen",
+            "idx": 0,
+            "pattern": "\\{"
+          },
+          {
+            "type": "Repetition",
+            "idx": 0,
+            "definition": [
+              {
+                "type": "NonTerminal",
+                "name": "member",
+                "idx": 0
+              }
+            ]
+          },
+          {
+            "type": "Terminal",
+            "name": "BracesClose",
+            "label": "BracesClose",
+            "idx": 0,
+            "pattern": "\\}"
+          },
+          {
+            "type": "Option",
+            "idx": 4,
+            "definition": [
+              {
+                "type": "NonTerminal",
+                "name": "attributes",
+                "idx": 2
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "Rule",
     "name": "member",
     "orgText": "",
     "definition": [
@@ -256,11 +359,32 @@
         ]
       },
       {
-        "type": "Terminal",
-        "name": "TypeKeyword",
-        "label": "TypeKeyword",
+        "type": "Alternation",
         "idx": 0,
-        "pattern": {}
+        "definition": [
+          {
+            "type": "Alternative",
+            "definition": [
+              {
+                "type": "Terminal",
+                "name": "TypeKeyword",
+                "label": "TypeKeyword",
+                "idx": 0,
+                "pattern": {}
+              }
+            ]
+          },
+          {
+            "type": "Alternative",
+            "definition": [
+              {
+                "type": "NonTerminal",
+                "name": "nested",
+                "idx": 0
+              }
+            ]
+          }
+        ]
       },
       {
         "type": "Repetition",
@@ -276,25 +400,31 @@
         ]
       },
       {
-        "type": "NonTerminal",
-        "name": "memberName",
-        "idx": 1
-      },
-      {
-        "type": "Repetition",
+        "type": "Option",
         "idx": 2,
         "definition": [
           {
-            "type": "Terminal",
-            "name": "Comma",
-            "label": "Comma",
-            "idx": 0,
-            "pattern": ","
-          },
-          {
             "type": "NonTerminal",
             "name": "memberName",
-            "idx": 2
+            "idx": 1
+          },
+          {
+            "type": "Repetition",
+            "idx": 2,
+            "definition": [
+              {
+                "type": "Terminal",
+                "name": "Comma",
+                "label": "Comma",
+                "idx": 0,
+                "pattern": ","
+              },
+              {
+                "type": "NonTerminal",
+                "name": "memberName",
+                "idx": 2
+              }
+            ]
           }
         ]
       },
@@ -326,11 +456,34 @@
         ]
       },
       {
-        "type": "Terminal",
-        "name": "Struct",
-        "label": "Struct",
+        "type": "Alternation",
         "idx": 0,
-        "pattern": "struct"
+        "definition": [
+          {
+            "type": "Alternative",
+            "definition": [
+              {
+                "type": "Terminal",
+                "name": "Struct",
+                "label": "Struct",
+                "idx": 0,
+                "pattern": "struct\\b"
+              }
+            ]
+          },
+          {
+            "type": "Alternative",
+            "definition": [
+              {
+                "type": "Terminal",
+                "name": "Union",
+                "label": "Union",
+                "idx": 0,
+                "pattern": "union\\b"
+              }
+            ]
+          }
+        ]
       },
       {
         "type": "Option",

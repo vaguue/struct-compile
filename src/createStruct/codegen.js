@@ -135,18 +135,19 @@ function bitsPackExpr(unit, valueOf) {
 // Arrays up to this many elements are read with an unrolled literal.
 const UNROLL_LIMIT = 32;
 
-function arrayLiteral(f, b, base, endianness, inline, level = 0, offset = f.offset) {
+// `element(offset)` is the expression reading the element stored at `offset`
+function arrayLiteral(f, element, level = 0, offset = f.offset) {
   const n = f.d[level];
   const items = [];
   if (level == f.d.length - 1) {
     for (let i = 0; i < n; ++i) {
-      items.push(readExpr(f, b, position(base, offset + i * f.bytes), endianness, inline));
+      items.push(element(offset + i * f.bytes));
     }
   }
   else {
     const chunk = f.d.slice(level + 1).reduce((a, k) => a * k, f.bytes);
     for (let i = 0; i < n; ++i) {
-      items.push(arrayLiteral(f, b, base, endianness, inline, level + 1, offset + i * chunk));
+      items.push(arrayLiteral(f, element, level + 1, offset + i * chunk));
     }
   }
   return `[${items.join(',')}]`;
@@ -177,9 +178,63 @@ export function generate(layout, { inline }) {
 
   const arrayRead = (f, b, base, endianness) => {
     if (f.count <= UNROLL_LIMIT) {
-      return arrayLiteral(f, b, base, endianness, inline);
+      return arrayLiteral(f, offset => readExpr(f, b, position(base, offset), endianness, inline));
     }
     return `$arrayGet(${b},${position(base, f.offset)()},${descriptor(f, endianness)})`;
+  };
+
+  /*
+   * Nested structs / unions. Their classes are compiled separately and
+   * handed to the generated code as `$s<n>`; the eager paths call straight
+   * into the nested codecs with a constant offset.
+   */
+  const refs = {};
+  const structRef = (f) => {
+    const id = `$s${fields.indexOf(f)}`;
+    refs[id] = f.Inner;
+    return id;
+  };
+
+  const spec = f => JSON.stringify({ d: f.d, bytes: f.bytes, total: f.total });
+
+  // array of nested structs, accessed lazily: elements are views
+  const structViewDescriptor = (f) => {
+    const id = `$d${fields.indexOf(f)}V`;
+    const S = structRef(f);
+    if (!descriptors.has(id)) {
+      descriptors.set(id,
+        `const ${id}=$array(${spec(f)},` +
+        `function(b,p){return new ${S}(b.subarray(p,p+${f.bytes}));},` +
+        `function(b,p,v){$structSet(b,p,${S},v);});`
+      );
+    }
+    return id;
+  };
+
+  // array of nested structs, decoded / encoded eagerly
+  const structCodecDescriptor = (f, suffix) => {
+    const id = `$d${fields.indexOf(f)}C${suffix}`;
+    const S = structRef(f);
+    if (!descriptors.has(id)) {
+      descriptors.set(id,
+        `const ${id}=$array(${spec(f)},` +
+        `function(b,p){return ${S}.decode${suffix}(b,p);},` +
+        `function(b,p,v){${S}.encode${suffix}(b,p,v);});`
+      );
+    }
+    return id;
+  };
+
+  const structRead = (f, b, base, suffix) => {
+    const S = structRef(f);
+    const element = offset => `${S}.decode${suffix}(${b},${position(base, offset)()})`;
+    if (f.d.length == 0) {
+      return element(f.offset);
+    }
+    if (f.count <= UNROLL_LIMIT) {
+      return arrayLiteral(f, element);
+    }
+    return `$arrayGet(${b},${position(base, f.offset)()},${structCodecDescriptor(f, suffix)})`;
   };
 
   /*
@@ -228,6 +283,25 @@ export function generate(layout, { inline }) {
         `set(v){$arraySet(this._buf,${f.offset},${id},v);}}`
       );
     }
+    else if (f.kind == 'struct') {
+      const S = structRef(f);
+      const range = `${f.offset},${f.offset + f.total}`;
+      if (f.d.length > 0) {
+        const id = structViewDescriptor(f);
+        accessors.push(
+          `${literalKey(f.name)}:{` +
+          `get(){return $arrayView(this._buf.subarray(${range}),${id});},` +
+          `set(v){$arraySet(this._buf,${f.offset},${id},v);}}`
+        );
+      }
+      else {
+        accessors.push(
+          `${literalKey(f.name)}:{` +
+          `get(){return new ${S}(this._buf.subarray(${range}));},` +
+          `set(v){$structSet(this._buf,${f.offset},${S},v);}}`
+        );
+      }
+    }
     else if (f.kind == 'bits') {
       const { unit } = f;
       const pos = position(null, unit.offset);
@@ -248,11 +322,17 @@ export function generate(layout, { inline }) {
    * subclasses overriding a member are respected.
    */
   const objectItems = fields.map(f => {
-    const value = f.kind == 'array' ? arrayRead(f, 'b', null, f.endianness) : member('this', f.name);
+    let value = member('this', f.name);
+    if (f.kind == 'array') {
+      value = arrayRead(f, 'b', null, f.endianness);
+    }
+    else if (f.kind == 'struct') {
+      value = structRead(f, 'b', null, '');
+    }
     return `${literalKey(f.name)}:${value}`;
   });
   emit(`P.toObject=function toObject(){`);
-  if (fields.some(f => f.kind == 'array')) {
+  if (fields.some(f => f.kind == 'array' || f.kind == 'struct')) {
     emit(`const b=this._buf;`);
   }
   emit(`const r={${objectItems.join(',')}};`);
@@ -275,7 +355,7 @@ export function generate(layout, { inline }) {
   emit(`P.merge=merge;`);
 
   const stringItems = fields
-    .filter(f => layout.props[f.name].d.length == 0)
+    .filter(f => f.kind != 'struct' && layout.props[f.name].d.length == 0)
     .map(f => `+${JSON.stringify(` | ${f.name}: `)}+$str(${member('this', f.name)})`);
   emit(`P.toString=function toString(){`);
   emit(`return $head${stringItems.join('')}+($extras.length!==0?$extrasToString(this):"")+">";};`);
@@ -294,6 +374,9 @@ export function generate(layout, { inline }) {
       }
       else if (f.kind == 'array') {
         items.push(`${literalKey(f.name)}:${arrayRead(f, 'b', 'o', e(f))}`);
+      }
+      else if (f.kind == 'struct') {
+        items.push(`${literalKey(f.name)}:${structRead(f, 'b', 'o', suffix)}`);
       }
       else if (f.kind == 'bits') {
         const { unit } = f;
@@ -317,13 +400,31 @@ export function generate(layout, { inline }) {
     if (inline) {
       emit(`if(!(o>=0&&o+${size}<=b.length))$range(b,o);`);
     }
+    // members of a union share their storage: only the provided ones are written
+    const provided = (f, stmt) => f.optional ? `if((t=${member('v', f.name)})!==undefined){${stmt}}` : `t=${member('v', f.name)};${stmt}`;
+
     for (const f of fields) {
-      const value = member('v', f.name);
       if (f.kind == 'scalar') {
-        emit(`t=${value};${writeStmt(f, 'b', position('o', f.offset), e(f), convExpr(f, 't', e(f)), inline)}`);
+        emit(provided(f, writeStmt(f, 'b', position('o', f.offset), e(f), convExpr(f, 't', e(f)), inline)));
       }
       else if (f.kind == 'array') {
-        emit(`$arraySet(b,${position('o', f.offset)()},${descriptor(f, e(f))},${value});`);
+        emit(`$arraySet(b,${position('o', f.offset)()},${descriptor(f, e(f))},${member('v', f.name)});`);
+      }
+      else if (f.kind == 'struct') {
+        const pos = position('o', f.offset)();
+        if (f.d.length > 0) {
+          emit(`$arraySet(b,${pos},${structCodecDescriptor(f, suffix)},${member('v', f.name)});`);
+        }
+        else {
+          emit(provided(f, `${structRef(f)}.encode${suffix}(b,${pos},t);`));
+        }
+      }
+      else if (f.kind == 'bits' && f.optional) {
+        // inside a union the rest of the storage unit belongs to other members
+        const { unit } = f;
+        const pos = position('o', unit.offset);
+        const u = readExpr(unitSpec(unit), 'b', pos, e(unit), inline);
+        emit(provided(f, writeStmt(unitSpec(unit), 'b', pos, e(unit), bitsSetExpr(f, u, 't'), inline)));
       }
       else if (f.kind == 'bits' && f.unit.members[0] === f) {
         const { unit } = f;
@@ -344,5 +445,5 @@ export function generate(layout, { inline }) {
     [...descriptors.values()].join('\n') + 
     `\nObject.defineProperties(P,{${accessors.join(',\n')}});`;
 
-  return out.join('\n');
+  return { source: out.join('\n'), refs };
 }
