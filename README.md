@@ -12,16 +12,18 @@ npm i struct-compile --save
 
 The goal of this project is to generate efficient binary parsers and serializers in JavaScript directly from C-style structure declarations.
 
-Two modes are available:
+`compile` turns every `struct` declaration into a JavaScript class. All of the code that touches the buffer is generated for that particular struct (constant offsets, integer reads inlined as byte arithmetic, members accessed by name), so the class can be used in two ways, whichever fits the call site:
 
-- **Class mode** (`compile`) – returns a `Struct` class per declaration. The class lazily reads fields on access through `Object.defineProperty` getters; great when only a few fields of a large struct are inspected at runtime.
-- **Fast mode** (`compileFast`) – returns plain `{ size, decode, encode, decodeLE, decodeBE, encodeLE, encodeBE }` objects per declaration. The decode/encode functions are emitted as inline `new Function`s that produce monomorphic object literals with constant-offset `Buffer` reads. This is roughly an order of magnitude faster than the class-based path on hot loops, at the cost of allocating the full record on every decode and not supporting bit fields or arrays.
+- **Lazily**, as a view over a buffer: `new Struct(buffer)` reads nothing, each member is decoded when it's accessed and written in place when it's assigned. Good when a few fields of a header are inspected or patched.
+- **Eagerly**, through the static codecs: `Struct.decode(buffer, offset)` returns a plain object with every member decoded (no instance, no `subarray`), `Struct.encode(buffer, offset, values)` writes one. Good for tight parsing loops.
+
+Both work for every struct, including the ones with bit fields and arrays, and both agree with each other: `Struct.decode(buf, 0)` equals `new Struct(buf).toObject()`.
 
 ## System Requirements
 
 - Node.js >= 16.18.0
 
-## Getting Started — Class Mode
+## Getting Started
 
 `compile(string, [arch], [BufferImpl]) => { [StructName]: StructClass }`
 
@@ -68,15 +70,25 @@ console.log(parsed.dbl);
 
 The struct syntax follows C alignment rules; auxiliary comments control endianness. See the references on [Microsoft's padding and alignment guide](https://learn.microsoft.com/en-us/cpp/c-language/padding-and-alignment-of-structure-members) and [GCC type attributes](https://gcc.gnu.org/onlinedocs/gcc-4.1.2/gcc/Type-Attributes.html).
 
-## Getting Started — Fast Mode
+`fromConfig(config, [arch], [BufferImpl])` builds a single class from a struct AST (the shape found in `Struct.prototype.config`), skipping the C parser.
 
-`compileFast(string, [arch]) => { [StructName]: { size, decode, encode, decodeLE, decodeBE, encodeLE, encodeBE } }`
+### Instances
+
+| Member                        | Description                                                                                   |
+|-------------------------------|-----------------------------------------------------------------------------------------------|
+| `new Struct()`                | Allocates a zeroed buffer of `Struct.size` bytes.                                              |
+| `new Struct(buffer)`          | Wraps `buffer` without copying; throws if it's shorter than the struct.                        |
+| `new Struct(object)`          | Allocates a buffer and `merge`s the object into it.                                            |
+| `instance.<member>`           | Reads / writes the member in place. Arrays return an indexable view (`pdu.name[3]`, `m[1][2]`) and accept a `Buffer`, a string or an array on assignment. |
+| `instance.buffer`             | The underlying buffer.                                                                         |
+| `instance.length`             | Size in bytes.                                                                                 |
+| `instance.toObject()`         | Every member as a plain object, arrays as (nested) JS arrays.                                  |
+| `instance.merge(object)`      | Assigns the members present in `object`.                                                       |
+
+### Static codecs
 
 ```javascript
-import { compileFast } from 'struct-compile';
-// CommonJS: const { compileFast } = require('struct-compile');
-
-const { PacketHeader } = compileFast(`
+const { PacketHeader } = compile(`
   //@LE
   struct __attribute__((__packed__)) PacketHeader {
     uint32_t tv_sec;
@@ -88,12 +100,12 @@ const { PacketHeader } = compileFast(`
 
 console.log(PacketHeader.size); // 16
 
-// Decode — returns a plain object with a fixed shape, no class instance
+// Decode at an offset: a plain object with a fixed shape, no class instance
 const buf = Buffer.from('64fa125e000000006000000060000000', 'hex');
 const record = PacketHeader.decode(buf, 0);
 // → { tv_sec: 1578302052, tv_usec: 0, caplen: 96, len: 96 }
 
-// Encode — writes scalars into a caller-provided Buffer
+// Encode into a caller-provided Buffer
 const out = Buffer.allocUnsafe(PacketHeader.size);
 PacketHeader.encode(out, 0, { tv_sec: 1, tv_usec: 2, caplen: 60, len: 60 });
 
@@ -102,34 +114,45 @@ PacketHeader.encodeBE(out, 0, { tv_sec: 1, tv_usec: 2, caplen: 60, len: 60 });
 const r = PacketHeader.decodeBE(out, 0);
 ```
 
-`decode` / `encode` honour the per-field endianness pinned via `//@LE` / `//@BE` comments (or the struct-level default); `decodeLE/encodeLE/decodeBE/encodeBE` force a single endianness across all fields, which is convenient when the same wire layout is used in both byte orders (e.g. classic pcap).
+| Member                                   | Description                                                                 |
+|------------------------------------------|-----------------------------------------------------------------------------|
+| `Struct.size`                            | Size in bytes.                                                              |
+| `Struct.decode(buffer, [offset])`        | Decodes all members; throws a `RangeError` if the struct doesn't fit.       |
+| `Struct.encode(buffer, offset, values)`  | Writes all members (padding bytes are left untouched).                      |
+| `decodeLE` / `decodeBE` / `encodeLE` / `encodeBE` | Same, forcing one byte order for every member.                     |
+| `Struct.createReader()` / `Struct.createSingleReader()` | Stream helpers that cut a byte stream into records.          |
 
-### When to pick which
+`decode` / `encode` honour the endianness pinned via `//@LE` / `//@BE` / `//@NE` comments (or the struct-level default); the `LE` / `BE` variants ignore the annotations, which is convenient when the same wire layout exists in both byte orders (e.g. classic pcap).
 
-| Scenario                                            | Recommended       |
-|-----------------------------------------------------|-------------------|
-| Tight parse loops on packed binary protocols        | **Fast mode**     |
-| Random read of a few fields out of a large record   | Class mode (lazy) |
-| Mutation of fields on a backing buffer in place     | Class mode        |
-| Need bit fields or arrays                           | Class mode        |
-| You only need `{ size, decode, encode }` from an AST | `fastFromConfig`  |
+### Which one to use
 
-`fastFromConfig(config, [arch])` accepts a single struct AST (the same shape `compileFast` produces internally) and is useful when you want to skip the C-source parser entirely and build the layout programmatically.
+| Scenario                                               | Use                              |
+|--------------------------------------------------------|----------------------------------|
+| Tight parse loop, most members needed                  | `Struct.decode(buf, offset)`     |
+| A few members out of a large record                    | `new Struct(buf)` + accessors    |
+| Patching members of an existing buffer in place        | `new Struct(buf)` + accessors    |
+| Serialising a full record                              | `Struct.encode(buf, offset, v)`  |
+
+`npm run perf` prints the numbers for your machine.
+
+### Custom buffer implementations
+
+`BufferImpl` defaults to `Buffer`. Any `Uint8Array` subclass providing the Node.js `Buffer` read/write methods gets the inlined reads; other implementations are driven through their `readXxx` / `writeXxx` methods only.
 
 ## Compatibility and Project Checklist
 
 The input syntax is a *subset* of C; current grammar can be viewed [here](https://raw.githack.com/vaguue/struct-compile/main/assets/generated_diagrams.html).
 
-| Feature              | Class mode (`compile`) | Fast mode (`compileFast`) | Notes                                        |
-|----------------------|:----------------------:|:-------------------------:|----------------------------------------------|
-| C structure parsing  | ✅                     | ✅                        |                                              |
-| Binary data creation | ✅                     | ✅                        |                                              |
-| Endianness setting   | ✅                     | ✅                        | Via `//@LE` / `//@BE` / `//@NE` comments     |
-| Bit fields           | ✅                     | ❌                        | Throws at compile time in fast mode          |
-| Arrays               | ✅                     | ❌                        | Throws at compile time in fast mode          |
-| Nested structures    | ❌                     | ❌                        |                                              |
-| Enums                | ❌                     | ❌                        |                                              |
-| Browser support      | ❌                     | ❌                        | Node.js `Buffer` API is required             |
+| Feature              | Supported | Notes                                        |
+|----------------------|:---------:|----------------------------------------------|
+| C structure parsing  | ✅        |                                              |
+| Binary data creation | ✅        |                                              |
+| Endianness setting   | ✅        | Via `//@LE` / `//@BE` / `//@NE` comments     |
+| Bit fields           | ✅        |                                              |
+| Arrays               | ✅        |                                              |
+| Nested structures    | ❌        |                                              |
+| Enums                | ❌        |                                              |
+| Browser support      | ❌        | Node.js `Buffer` API is required             |
 
 Contributions or suggestions for the unsupported features are welcome.
 

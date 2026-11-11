@@ -1,107 +1,107 @@
-import { cDataTypes } from '#src/dataTypes';
 import { trimWithEllipsis, toString } from '#src/strings';
 import { multiDimGet, multiDimSet } from '#src/array';
+import { forSize } from '#src/number';
 import { SingleStructReader, StructReader } from '#src/reader';
-import { createField, createBitField } from './fields.js';
-import { endiannessFromMeta } from './endianness.js';
+import { computeLayout } from './layout.js';
+import { generate } from './codegen.js';
+import { createArrayDescriptor, arrayGet, arraySet, arrayView } from './arrays.js';
 
+export { alignOffset } from './layout.js';
 
-function bitFieldStorageName(count) {
-  return `_bitfield${count}`;
-}
+const HELPERS = [
+  '$Buffer', '$short', '$range', '$cv', '$big', '$str', '$head',
+  '$array', '$arrayGet', '$arraySet', '$arrayView', '$multiDimSet',
+  '$extras', '$extrasToObject', '$extrasMerge', '$extrasToString',
+];
 
-function getPropertyData(arch, { type, meta, vars, comment }) {
-  let length, signed, customKey, floating = false;
-  if (type.includes('*')) {
-    length = arch.pointerSize * 8;
-    signed = false;
-  }
-  else {
-    ({ signed, length, customKey, floating } = cDataTypes[type]);
-    if (typeof length == 'function') {
-      length = length(arch);
-    }
-  }
-
-  return vars.map(v => {
-    const { name, d, bits } = v;
-    const res = { name, meta, signed, length, floating, customKey, d, comment, bits, type };
-    d.forEach(k => {
-      if (k == 0) {
-        res.length = 0;
-      }
-    });
-
-    return res;
-  });
-}
-
-export function alignOffset(offset, length) {
-  if (offset == 0 || length == 0) return offset;
-  const extra = (length - 1) - (offset - 1) % (length);
-  return offset + extra;
-}
+const isBytes = BufferImpl => BufferImpl === Uint8Array || BufferImpl.prototype instanceof Uint8Array;
 
 export function create({ name, attributes, members, meta, comment }, arch, BufferImpl) {
-  function Struct(arg, opts = {}) {
-    if (arg === undefined) {
-      this._buf = BufferImpl.alloc(this.length);
-    }
-    else if (arg instanceof BufferImpl) {
-      if (arg.length < this.length) {
-        throw new Error(`Invalid buffer length: expected at least ${this.length} bytes, got ${arg.length} bytes`);
-      }
-      this._buf = arg;
-    }
-    else if (typeof arg == 'object') {
-      const { _structCompileInternal = {} } = arg;
-      const zeroed = _structCompileInternal.zeroed ?? true;
-      if (zeroed) {
-        this._buf = BufferImpl.alloc(opts.toAlloc ?? this.length);
-      }
-      else {
-        this._buf = BufferImpl.allocUnsafe(opts.toAlloc ?? this.length);
-      }
+  const layout = computeLayout({ attributes, members, meta }, arch);
+  const { size, props } = layout;
 
-      Object.entries(this.config.fields).forEach(([key, val]) => {
-        if (arg[key] !== undefined) {
-          const argValue = arg[key];
-          if (val.d?.length > 0 && Array.isArray(argValue)) {
-            multiDimSet(this[key], val.d, argValue);
-          }
-          else {
-            this[key] = argValue;
-          }
+  /*
+   * Members registered after compilation through `config.fields[name] = { d }`
+   * (virtual fields defined by subclasses). The generated toObject / merge /
+   * toString only pay a length check for this.
+   */
+  const extras = [];
+  const fields = new Proxy(props, {
+    set(target, key, value) {
+      if (typeof key == 'string' && !(key in target)) {
+        extras.push(key);
+      }
+      target[key] = value;
+      return true;
+    },
+    deleteProperty(target, key) {
+      const index = extras.indexOf(key);
+      if (index >= 0) {
+        extras.splice(index, 1);
+      }
+      return delete target[key];
+    },
+  });
+
+  const helpers = {
+    $Buffer: BufferImpl,
+    $extras: extras,
+    $head: `<${name}`,
+    $multiDimSet: multiDimSet,
+    $arrayGet: arrayGet,
+    $arraySet: arraySet,
+    $arrayView: arrayView,
+    $array: (spec, read, write) => createArrayDescriptor(spec, read, write, BufferImpl),
+    $short(expected, got) {
+      throw new Error(`Invalid buffer length: expected at least ${expected} bytes, got ${got} bytes`);
+    },
+    $range(buf, offset) {
+      throw new RangeError(`Out of range: ${name} takes ${size} bytes at offset ${offset}, buffer length is ${buf?.length}`);
+    },
+    $cv: (val, bits, floating, getter) => val instanceof BufferImpl ? val[getter]() : forSize(bits, val, floating),
+    $big: val => typeof val == 'bigint' ? val : BigInt(val ?? 0),
+    $str: val => trimWithEllipsis(toString(val)),
+    $extrasToObject(self, res) {
+      for (const key of extras) {
+        const { d } = props[key];
+        res[key] = d?.length > 0 && d[0] != 0 ? multiDimGet(self[key], d) : self[key];
+      }
+    },
+    $extrasMerge(self, obj) {
+      for (const key of extras) {
+        const val = obj[key];
+        if (val === undefined) continue;
+        const { d } = props[key];
+        if (d.length > 0 && Array.isArray(val)) {
+          multiDimSet(self[key], d, val);
         }
-      });
-    }
-  }
+        else {
+          self[key] = val;
+        }
+      }
+    },
+    $extrasToString(self) {
+      let res = '';
+      for (const key of extras) {
+        if (props[key].d.length == 0) {
+          res += ` | ${key}: ${trimWithEllipsis(toString(self[key]))}`;
+        }
+      }
+      return res;
+    },
+  };
 
-  const { pointerSize } = arch;
-
-  let { packed = false, aligned } = attributes ?? {};
-  let skipAlign = false;
-  if (aligned === true) {
-    aligned = pointerSize;
-  }
-  else if (aligned === undefined) {
-    if (packed) {
-      skipAlign = true;
-    }
-    else {
-      aligned = -1;
-    }
-  }
-  else {
-    aligned = parseInt(aligned);
-    if (Number.isNaN(aligned)) {
-      throw new Error(`Invalid aligned valued: ${aligned}`);
-    }
-  }
+  const source = generate(layout, { inline: isBytes(BufferImpl) });
+  const Struct = new Function(...HELPERS, `"use strict";\n${source}`)(...HELPERS.map(key => helpers[key]));
 
   Object.defineProperty(Struct, 'name', { value: name });
-  Object.defineProperty(Struct.prototype, 'config', { value: { name, attributes, members, meta, fields: {} } });
+  Object.defineProperty(Struct.prototype, 'config', { value: { name, attributes, members, meta, fields, length: size } });
   Object.defineProperty(Struct.prototype, 'BufferImpl', { value: BufferImpl });
+  Object.defineProperty(Struct.prototype, 'length', {
+    value: size,
+    writable: true,
+    configurable: true,
+  });
   Object.defineProperty(Struct.prototype, 'buffer', {
     get() {
       return this._buf;
@@ -111,49 +111,18 @@ export function create({ name, attributes, members, meta, comment }, arch, Buffe
         throw new Error(`Invalid buffer type: expected ${BufferImpl}`);
       }
       if (val.length < this.length) {
-        throw new Error(`Invalid buffer length: expected at least ${this.length} bytes, got ${this._buf.length} bytes`);
+        throw new Error(`Invalid buffer length: expected at least ${this.length} bytes, got ${val.length} bytes`);
       }
       this._buf = val;
     }
   });
 
-  Struct.prototype.toObject = function() {
-    const res = {};
-    for (const [key, val] of Object.entries(this.config.fields)) {
-      if (val.d?.length > 0 && val.d?.[0] != 0) {
-        res[key] = multiDimGet(this[key], val.d);
-      }
-      else {
-        res[key] = this[key];
-      }
-    }
-    return res;
-  };
+  Struct.size = size;
 
-  Struct.prototype.merge = function(obj) {
-    Object.entries(this.config.fields).forEach(([key, val]) => {
-      if (obj[key] !== undefined) {
-        const argValue = obj[key];
-        if (val.d.length > 0 && Array.isArray(argValue)) {
-          multiDimSet(this[key], val.d, argValue);
-        }
-        else {
-          this[key] = argValue;
-        }
-      }
-    });
-  };
-
-  Struct.prototype.toString = function() {
-    let res = `<${name}`;
-    Object.entries(this.config.fields).forEach(([key, val]) => {
-      if (val.d.length == 0) {
-        res = res + ` | ${key}: ${trimWithEllipsis(toString(this[key]))}`;
-      }
-    });
-    res += '>';
-    return res;
-  };
+  Struct.comments = layout.comments;
+  if (comment) {
+    Struct.comments.main = comment;
+  }
 
   Struct.createSingleReader = function(options = {}) {
     return new SingleStructReader({ ...options, Struct });
@@ -163,82 +132,10 @@ export function create({ name, attributes, members, meta, comment }, arch, Buffe
     return new StructReader({ ...options, Struct });
   };
 
-  let offset = 0;
-  const endianness = endiannessFromMeta(arch.endianness, meta);
-
-  Struct.comments = {};
-
-  if (comment) {
-    Struct.comments.main = comment;
-  }
-
-  const props = [];
-  let prev = null;
-  let bfCount = 0;
-  let bitsOffset = 0;
-
-  members.forEach((member) => {
-    const propData = getPropertyData(arch, member);
-    for (const prop of propData) {
-      const { name, comment } = prop;
-      if (comment) {
-        Struct.comments[name] = comment;
-      }
-
-      if (prop.bits > 0) {
-        if (!(
-          prev?.bits > 0 &&
-          prev?.type == prop.type &&
-          (prop.length - bitsOffset) >= prop.bits
-        )) {
-          bfCount++;
-          bitsOffset = 0;
-          props.push({
-            ...prop,
-            name: bitFieldStorageName(bfCount),
-          });
-        }
-
-        createBitField(Struct.prototype, bitsOffset, bitFieldStorageName(bfCount), prop);
-        bitsOffset += prop.bits;
-      }
-      else {
-        props.push(prop);
-      }
-
-      if (Struct.prototype.config.fields[prop.name] !== undefined) {
-        throw new Error(`Duplicate member names: ${prop.name}`);
-      }
-      Struct.prototype.config.fields[prop.name] = prop;
-      prev = prop;
-    }
-  });
-
-  for (const prop of props) {
-    if (!packed) {
-      offset = alignOffset(offset, prop.length / 8);
-    }
-    if (!skipAlign) {
-      aligned = Math.max(aligned, prop.length / 8);
-    }
-
-    offset += createField(Struct.prototype, offset, prop, endianness) / 8;
-  }
-
-  const length = skipAlign ? offset : alignOffset(offset, aligned);
-
-  Object.defineProperty(Struct.prototype, 'length', {
-    value: length,
-    writable: true,
-    configurable: true,
-  });
-
-  Struct.prototype.config.length = length;
-
   return Struct;
 }
 
-export function createMany(structs, BufferImpl, arch) {
+export function createMany(structs, arch, BufferImpl) {
   if (!structs) return {};
-  return structs.reduce((res, e) => ({ ...res, [e.name]: create(e, BufferImpl, arch) }), {});
+  return structs.reduce((res, e) => ({ ...res, [e.name]: create(e, arch, BufferImpl) }), {});
 }
